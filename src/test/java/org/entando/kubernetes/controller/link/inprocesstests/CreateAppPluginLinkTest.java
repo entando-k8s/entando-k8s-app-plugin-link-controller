@@ -100,7 +100,7 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
                 .addHttpPath(any(Ingress.class), argThat(matchesHttpPath(MY_PLUGIN_CONTEXT_PATH)), anyMap()))
                 .then(answerWithIngressStatus(ingressStatus));
         lenient().when(client.services()
-                .createService(eq(entandoPlugin), argThat(matchesName(MY_PLUGIN_SERVER_SERVICE))))
+                .createOrReplaceService(eq(entandoPlugin), argThat(matchesName(MY_PLUGIN_SERVER_SERVICE))))
                 .then(answerWithClusterIp(CLUSTER_IP));
         when(entandoComponentInstallerService.isPluginHealthy(anyString())).thenReturn(true);
         //And I have an app and a plugin
@@ -118,7 +118,7 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
                 .withEntandoPlugin(MY_PLUGIN_NAMESPACE, MY_PLUGIN)
                 .endSpec()
                 .build();
-        client.entandoResources().putEntandoCustomResource(newEntandoAppPluginLink);
+        client.entandoResources().createOrPatchEntandoResource(newEntandoAppPluginLink);
         linkController.onStartup(new StartupEvent());
 
         //Then K8S was instructed to create an Ingress for the Plugin JEE Server
@@ -142,7 +142,7 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
         //And a delegating service was created in the App's namespace
 
         NamedArgumentCaptor<Service> serviceArgumentCaptor = forResourceNamed(Service.class, MY_APP_INGRESS_TO_MY_PLUGIN_SERVER_SERVICE);
-        verify(client.services()).createService(eq(newEntandoAppPluginLink), serviceArgumentCaptor.capture());
+        verify(client.services()).createOrReplaceService(eq(newEntandoAppPluginLink), serviceArgumentCaptor.capture());
         assertThat(thePortNamed(SERVER_PORT).on(serviceArgumentCaptor.getValue()).getPort(), is(PORT_8081));
         assertThat(serviceArgumentCaptor.getValue().getMetadata().getLabels().get(ENTANDO_APP_PLUGIN_LINK_LABEL_NAME), is(MY_LINK));
         assertThat(serviceArgumentCaptor.getValue().getMetadata().getOwnerReferences().get(0).getName(), is(MY_LINK));
@@ -151,7 +151,7 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
 
         NamedArgumentCaptor<Endpoints> endpointsArgumentCaptor = forResourceNamed(Endpoints.class,
                 MY_APP_INGRESS_TO_MY_PLUGIN_SERVER_SERVICE);
-        verify(client.services()).createEndpoints(eq(newEntandoAppPluginLink), endpointsArgumentCaptor.capture());
+        verify(client.services()).createOrReplaceEndpoints(eq(newEntandoAppPluginLink), endpointsArgumentCaptor.capture());
         assertThat(thePortNamed(SERVER_PORT).on(endpointsArgumentCaptor.getValue()).getPort(), is(PORT_8081));
         assertThat(endpointsArgumentCaptor.getValue().getSubsets().get(0).getAddresses().get(0).getIp(), is(CLUSTER_IP));
         assertThat(endpointsArgumentCaptor.getValue().getMetadata().getLabels().get(ENTANDO_APP_PLUGIN_LINK_LABEL_NAME), is(MY_LINK));

@@ -43,7 +43,7 @@ public class EntandoAppPluginLinkController extends AbstractDbAwareController<En
     }
 
     @Override
-    protected void processAddition(EntandoAppPluginLink newEntandoAppPluginLink) {
+    protected void synchronizeDeploymentState(EntandoAppPluginLink newEntandoAppPluginLink) {
         EntandoLinkedPluginIngressing entandoLinkedPluginIngressing = prepareEntandoPluginIngressing(newEntandoAppPluginLink);
         LinkAppToPluginCommand linkAppToPluginCommand = new LinkAppToPluginCommand(newEntandoAppPluginLink,
                 entandoLinkedPluginIngressing);
