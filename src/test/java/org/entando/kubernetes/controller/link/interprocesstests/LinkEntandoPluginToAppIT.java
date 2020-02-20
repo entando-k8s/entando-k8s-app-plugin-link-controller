@@ -1,3 +1,19 @@
+/*
+ *
+ * Copyright 2015-Present Entando Inc. (http://www.entando.com) All rights reserved.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ * details.
+ *
+ */
+
 package org.entando.kubernetes.controller.link.interprocesstests;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -19,7 +35,7 @@ import org.entando.kubernetes.controller.integrationtest.support.HttpTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.K8SIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.KeycloakIntegrationTestHelper;
 import org.entando.kubernetes.controller.link.EntandoAppPluginLinkController;
-import org.entando.kubernetes.model.DbmsImageVendor;
+import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.EntandoDeploymentPhase;
 import org.entando.kubernetes.model.JeeServer;
 import org.entando.kubernetes.model.app.EntandoApp;
@@ -41,7 +57,7 @@ import org.keycloak.representations.idm.RoleRepresentation;
 public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
 
     public static final String TEST_LINK = "test-link";
-    private static final DbmsImageVendor DBMS = DbmsImageVendor.POSTGRESQL;
+    private static final DbmsVendor DBMS = DbmsVendor.POSTGRESQL;
     private String entandoAppHostName;
     private K8SIntegrationTestHelper helper = new K8SIntegrationTestHelper();
 
@@ -83,7 +99,7 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
         if (existingApp == null || existingApp.getStatus().getEntandoDeploymentPhase() != EntandoDeploymentPhase.SUCCESSFUL) {
             helper.setTextFixture(deleteAll(EntandoApp.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE));
             EntandoApp entandoApp = new EntandoAppBuilder().withNewSpec().withStandardServerImage(JeeServer.WILDFLY)
-                    .withDbms(DbmsImageVendor.POSTGRESQL)
+                    .withDbms(DbmsVendor.POSTGRESQL)
                     .withIngressHostName(entandoAppHostName)
                     .withReplicas(1)
                     .withEntandoImageVersion("6.0.0-SNAPSHOT")

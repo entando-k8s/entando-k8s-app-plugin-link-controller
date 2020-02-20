@@ -1,6 +1,7 @@
 .idea/*
 !.idea/runConfigurations
 !.idea/codeStyles
+!.idea/copyright
 !.idea/sonarlint.xml
 target/
 *.iml
