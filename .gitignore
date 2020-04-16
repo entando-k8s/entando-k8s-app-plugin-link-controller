@@ -10,3 +10,4 @@ target/
 .settings/
 classes/
 /src/test/resources/crd/examples/
+/.factorypath
