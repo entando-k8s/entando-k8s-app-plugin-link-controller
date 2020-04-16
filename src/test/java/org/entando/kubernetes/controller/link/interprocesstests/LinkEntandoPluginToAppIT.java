@@ -69,6 +69,7 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
         this.helper.keycloak().releaseAllFinalizers(KeycloakIntegrationTestHelper.KEYCLOAK_NAMESPACE);
         this.helper.entandoApps().releaseAllFinalizers(EntandoAppIntegrationTestHelper.TEST_NAMESPACE);
         this.helper.entandoPlugins().releaseAllFinalizers(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAMESPACE);
+        this.helper.appPluginLinks().releaseAllFinalizers(EntandoAppIntegrationTestHelper.TEST_NAMESPACE);
         this.helper.setTextFixture(
                 deleteAll(EntandoKeycloakServer.class).fromNamespace(KeycloakIntegrationTestHelper.KEYCLOAK_NAMESPACE)
                         .deleteAll(EntandoApp.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
@@ -153,6 +154,7 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
         helper.keycloak().releaseAllFinalizers(KeycloakIntegrationTestHelper.KEYCLOAK_NAMESPACE);
         helper.entandoApps().releaseAllFinalizers(EntandoAppIntegrationTestHelper.TEST_NAMESPACE);
         helper.entandoPlugins().releaseAllFinalizers(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAMESPACE);
+        helper.appPluginLinks().releaseAllFinalizers(EntandoAppIntegrationTestHelper.TEST_NAMESPACE);
         helper.afterTest();
     }
 
