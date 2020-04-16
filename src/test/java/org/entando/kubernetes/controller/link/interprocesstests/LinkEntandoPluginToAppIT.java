@@ -151,10 +151,7 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
 
     @AfterEach
     public void afterwards() {
-        helper.keycloak().releaseAllFinalizers(KeycloakIntegrationTestHelper.KEYCLOAK_NAMESPACE);
-        helper.entandoApps().releaseAllFinalizers(EntandoAppIntegrationTestHelper.TEST_NAMESPACE);
-        helper.entandoPlugins().releaseAllFinalizers(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAMESPACE);
-        helper.appPluginLinks().releaseAllFinalizers(EntandoAppIntegrationTestHelper.TEST_NAMESPACE);
+        helper.releaseAllFinalizers();
         helper.afterTest();
     }
 
