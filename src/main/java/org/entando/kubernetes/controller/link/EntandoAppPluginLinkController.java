@@ -16,6 +16,7 @@
 
 package org.entando.kubernetes.controller.link;
 
+import io.fabric8.kubernetes.api.model.ServiceStatus;
 import io.fabric8.kubernetes.api.model.extensions.HTTPIngressPath;
 import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -37,24 +38,19 @@ import org.entando.kubernetes.model.plugin.EntandoPlugin;
 
 public class EntandoAppPluginLinkController extends AbstractDbAwareController<EntandoAppPluginLink> {
 
-    private EntandoComponentInstallerService entandoComponentInstallerService;
 
     @Inject
     public EntandoAppPluginLinkController(KubernetesClient kubernetesClient) {
         super(kubernetesClient);
-        this.entandoComponentInstallerService = new DefaultEntandoComponentInstallerService();
     }
 
     public EntandoAppPluginLinkController(SimpleK8SClient<?> k8sClient,
-            SimpleKeycloakClient keycloakClient,
-            EntandoComponentInstallerService entandoComponentInstallerService) {
+            SimpleKeycloakClient keycloakClient) {
         super(k8sClient, keycloakClient);
-        this.entandoComponentInstallerService = entandoComponentInstallerService;
     }
 
     public EntandoAppPluginLinkController(KubernetesClient kubernetesClient, boolean exitAutomatically) {
         super(kubernetesClient, exitAutomatically);
-        this.entandoComponentInstallerService = new DefaultEntandoComponentInstallerService();
     }
 
     public void onStartup(@Observes StartupEvent event) {
@@ -83,28 +79,7 @@ public class EntandoAppPluginLinkController extends AbstractDbAwareController<En
         LinkAppToPluginCommand linkAppToPluginCommand = new LinkAppToPluginCommand(newEntandoAppPluginLink,
                 entandoLinkedPluginIngressing);
         linkAppToPluginCommand.execute(k8sClient, keycloakClient);
-        boolean wasSuccessful = !linkAppToPluginCommand.getStatus().hasFailed();
-        if (wasSuccessful && isPluginAvailableOnAppIngress(entandoLinkedPluginIngressing)) {
-            //TODO in future this is where we send the message to the Queue in the ENtandoK8S pod
-            registerDefaultComponents(entandoLinkedPluginIngressing);
-        }
         k8sClient.entandoResources().updateStatus(newEntandoAppPluginLink, linkAppToPluginCommand.getStatus());
-    }
-
-    private void registerDefaultComponents(EntandoLinkedPluginIngressing entandoLinkedPluginIngressing) {
-        String keycloakAuthUrl = k8sClient.entandoResources().findKeycloak(entandoLinkedPluginIngressing.getEntandoApp()).getBaseUrl();
-        String externalBaseUrlForPlugin = entandoLinkedPluginIngressing.getEntandoPluginDeploymentResult()
-                .getExternalBaseUrlForPort("server-port");
-        String externalBaseUrlForApp = entandoLinkedPluginIngressing.getEntandoAppDeploymentResult()
-                .getExternalBaseUrlForPort("server-port");
-        entandoComponentInstallerService.registerPluginComponents(keycloakAuthUrl, externalBaseUrlForPlugin, externalBaseUrlForApp);
-    }
-
-    private boolean isPluginAvailableOnAppIngress(EntandoLinkedPluginIngressing entandoLinkedPluginIngressing) {
-        IngressingPathOnPort pluginPath = entandoLinkedPluginIngressing.getIngressingContainers().get(0);
-        String healthCheck = entandoLinkedPluginIngressing.getEntandoAppDeploymentResult().getExternalHostUrl()
-                + pluginPath.getHealthCheckPath().orElse("");
-        return this.entandoComponentInstallerService.isPluginHealthy(healthCheck);
     }
 
     private EntandoLinkedPluginIngressing prepareEntandoPluginIngressing(EntandoAppPluginLink newEntandoAppPluginLink) {
