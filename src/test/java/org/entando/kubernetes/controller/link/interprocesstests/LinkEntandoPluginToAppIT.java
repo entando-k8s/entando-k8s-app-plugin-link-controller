@@ -181,7 +181,7 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
                 .get();
 
         List<HTTPIngressPath> entandoAppIngressPaths = appIngress.getSpec().getRules().get(0).getHttp().getPaths();
-        assertTrue(entandoAppIngressPaths.stream().anyMatch( p -> p.getPath().equals("/avatarPlugin")));
+        assertTrue(entandoAppIngressPaths.stream().anyMatch(p -> p.getPath().equals("/avatarPlugin")));
     }
 
 }

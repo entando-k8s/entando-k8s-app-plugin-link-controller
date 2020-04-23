@@ -16,7 +16,6 @@
 
 package org.entando.kubernetes.controller.link;
 
-import io.fabric8.kubernetes.api.model.ServiceStatus;
 import io.fabric8.kubernetes.api.model.extensions.HTTPIngressPath;
 import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -37,7 +36,6 @@ import org.entando.kubernetes.model.link.EntandoAppPluginLinkSpec;
 import org.entando.kubernetes.model.plugin.EntandoPlugin;
 
 public class EntandoAppPluginLinkController extends AbstractDbAwareController<EntandoAppPluginLink> {
-
 
     @Inject
     public EntandoAppPluginLinkController(KubernetesClient kubernetesClient) {
