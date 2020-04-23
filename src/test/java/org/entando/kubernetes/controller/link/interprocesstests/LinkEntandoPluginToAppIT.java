@@ -155,7 +155,7 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
     }
 
     @Test
-    public void verifyWidgetRegistration() {
+    public void verifyIngressPathCreation() {
         helper.appPluginLinks().getOperations().create(new EntandoAppPluginLinkBuilder()
                 .withNewMetadata().withNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE).withName(TEST_LINK)
                 .endMetadata()
