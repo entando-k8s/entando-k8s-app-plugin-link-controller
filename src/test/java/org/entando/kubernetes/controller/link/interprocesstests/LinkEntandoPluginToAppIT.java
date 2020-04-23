@@ -16,22 +16,21 @@
 
 package org.entando.kubernetes.controller.link.interprocesstests;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.fabric8.kubernetes.api.model.ObjectMeta;
+import io.fabric8.kubernetes.api.model.extensions.HTTPIngressPath;
+import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import java.util.Collections;
 import java.util.List;
 import org.entando.kubernetes.controller.EntandoOperatorConfigProperty;
 import org.entando.kubernetes.controller.KubeUtils;
-import org.entando.kubernetes.controller.common.TlsHelper;
 import org.entando.kubernetes.controller.integrationtest.support.ClusterInfrastructureIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.EntandoAppIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.EntandoOperatorTestConfig;
 import org.entando.kubernetes.controller.integrationtest.support.EntandoOperatorTestConfig.TestTarget;
 import org.entando.kubernetes.controller.integrationtest.support.EntandoPluginIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.FluentIntegrationTesting;
-import org.entando.kubernetes.controller.integrationtest.support.HttpTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.K8SIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.KeycloakIntegrationTestHelper;
 import org.entando.kubernetes.controller.link.EntandoAppPluginLinkController;
@@ -156,7 +155,7 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
     }
 
     @Test
-    public void verifyWidgetRegistration() {
+    public void verifyIngressPathCreation() {
         helper.appPluginLinks().getOperations().create(new EntandoAppPluginLinkBuilder()
                 .withNewMetadata().withNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE).withName(TEST_LINK)
                 .endMetadata()
@@ -171,25 +170,18 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
                 .inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
                 .withName(TEST_LINK).get().getStatus().getEntandoDeploymentPhase() == EntandoDeploymentPhase.SUCCESSFUL);
         //Retrieve k8s-operator-token
-        String tokenUrl =
-                TlsHelper.getDefaultProtocol() + "://" + KeycloakIntegrationTestHelper.KEYCLOAK_NAME + "." + helper
-                        .getDomainSuffix()
-                        + "/auth/realms/entando/protocol/openid-connect/token";
-        String operatorToken = HttpTestHelper.getOperatorOAuthToken(tokenUrl);
-        List<String> pluginWidgetsCodes = HttpTestHelper
-                .getPluginsWidgetsCode(TlsHelper.getDefaultProtocol() + "://" + entandoAppHostName + "/avatarPlugin", operatorToken);
-        assertThat("There are some default widgets", !pluginWidgetsCodes.isEmpty());
-
-        List<String> coreInstalledWidgetsCodes = HttpTestHelper
-                .getEntandoCoreWidgetsCode(TlsHelper.getDefaultProtocol() + "://" + entandoAppHostName + "/entando-de-app", operatorToken);
-        assertThat(String.format("[%s] core widgets don't contain [%s]",
-                String.join(", ", coreInstalledWidgetsCodes),
-                String.join(", ", pluginWidgetsCodes)),
-                coreInstalledWidgetsCodes.containsAll(pluginWidgetsCodes));
         List<RoleRepresentation> roles = helper.keycloak()
                 .retrieveServiceAccountRoles(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER,
                         EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAME + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER);
         assertTrue(roles.stream().anyMatch(roleRepresentation -> roleRepresentation.getName().equals(KubeUtils.ENTANDO_APP_ROLE)));
+
+        Ingress appIngress = helper.getClient().extensions().ingresses()
+                .inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
+                .withName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-ingress")
+                .get();
+
+        List<HTTPIngressPath> entandoAppIngressPaths = appIngress.getSpec().getRules().get(0).getHttp().getPaths();
+        assertTrue(entandoAppIngressPaths.stream().anyMatch(p -> p.getPath().equals("/avatarPlugin")));
     }
 
 }

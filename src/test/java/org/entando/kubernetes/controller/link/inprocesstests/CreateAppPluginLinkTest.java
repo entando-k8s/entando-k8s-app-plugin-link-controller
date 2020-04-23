@@ -21,13 +21,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import io.fabric8.kubernetes.api.model.Endpoints;
 import io.fabric8.kubernetes.api.model.Service;
@@ -48,7 +46,6 @@ import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.EntandoRe
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.SimpleK8SClientDouble;
 import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
 import org.entando.kubernetes.controller.link.EntandoAppPluginLinkController;
-import org.entando.kubernetes.controller.link.EntandoComponentInstallerService;
 import org.entando.kubernetes.controller.test.support.FluentTraversals;
 import org.entando.kubernetes.controller.test.support.VariableReferenceAssertions;
 import org.entando.kubernetes.model.app.EntandoApp;
@@ -92,8 +89,6 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
     private final SimpleK8SClient<EntandoResourceClientDouble> client = new SimpleK8SClientDouble();
     @Mock
     private SimpleKeycloakClient keycloakClient;
-    @Mock
-    private EntandoComponentInstallerService entandoComponentInstallerService;
 
     private EntandoAppPluginLinkController linkController;
 
@@ -103,7 +98,7 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
         client.entandoResources().putEntandoPlugin(entandoPlugin);
         client.secrets().overwriteControllerSecret(buildInfrastructureSecret());
         client.secrets().overwriteControllerSecret(buildKeycloakSecret());
-        this.linkController = new EntandoAppPluginLinkController(client, keycloakClient, entandoComponentInstallerService);
+        this.linkController = new EntandoAppPluginLinkController(client, keycloakClient);
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_ACTION, Action.ADDED.name());
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_NAMESPACE, MY_APP_NAMESPACE);
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_NAME, MY_LINK);
@@ -119,7 +114,6 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
         lenient().when(client.services()
                 .createOrReplaceService(eq(entandoPlugin), argThat(matchesName(MY_PLUGIN_SERVER_SERVICE))))
                 .then(answerWithClusterIp(CLUSTER_IP));
-        when(entandoComponentInstallerService.isPluginHealthy(anyString())).thenReturn(true);
         //And I have an app and a plugin
         new DeployCommand<>(new FakeDeployable(entandoApp)).execute(client, Optional.of(keycloakClient));
         new DeployCommand<>(new FakeDeployable(entandoPlugin)).execute(client, Optional.of(keycloakClient));
@@ -182,8 +176,6 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
         //And K8S was instructed to update the status of the EntandoPlugin with the status of the ingress
         verify(client.entandoResources(), atLeastOnce())
                 .updateStatus(eq(newEntandoAppPluginLink), argThat(matchesIngressStatus(ingressStatus)));
-        verify(this.entandoComponentInstallerService)
-                .isPluginHealthy("https://myapp.192.168.0.100.nip.io" + MY_PLUGIN_CONTEXT_PATH + "/actuator/health");
         verify(keycloakClient)
                 .assignRoleToClientServiceAccount(eq(ENTANDO_KEYCLOAK_REALM), eq(MY_APP + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER),
                         argThat(matches(new Permission(MY_PLUGIN_SERVER, KubeUtils.ENTANDO_APP_ROLE))));
@@ -203,7 +195,6 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
         lenient().when(client.services()
                 .createOrReplaceService(eq(entandoPlugin), argThat(matchesName(MY_PLUGIN_SERVER_SERVICE))))
                 .then(answerWithClusterIp(CLUSTER_IP));
-        when(entandoComponentInstallerService.isPluginHealthy(anyString())).thenReturn(true);
         //And I have an app and a plugin
         new DeployCommand<>(new FakeDeployable(entandoApp)).execute(client, Optional.of(keycloakClient));
         new DeployCommand<>(new FakeDeployable(entandoPlugin)).execute(client, Optional.of(keycloakClient));
