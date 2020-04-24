@@ -185,54 +185,6 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
                         argThat(matches(new Permission(MY_PLUGIN_SERVER, KubeUtils.ENTANDO_APP_ROLE))));
     }
 
-    @Test
-    public void testLinkCleanup() {
-        //Given that K8S is up and receiving Ingress requests
-        IngressStatus ingressStatus = new IngressStatus();
-        lenient().when(client.ingresses()
-                .addHttpPath(any(Ingress.class), argThat(matchesHttpPath(MY_PLUGIN_CONTEXT_PATH)), anyMap()))
-                .then(answerWithIngressStatus(ingressStatus));
-        lenient().when(client.services()
-                .createOrReplaceService(eq(entandoPlugin), argThat(matchesName(MY_PLUGIN_SERVER_SERVICE))))
-                .then(answerWithClusterIp(CLUSTER_IP));
-        //And I have an app and a plugin
-        new DeployCommand<>(new FakeDeployable(entandoApp)).execute(client, Optional.of(keycloakClient));
-        new DeployCommand<>(new FakeDeployable(entandoPlugin)).execute(client, Optional.of(keycloakClient));
-
-        EntandoAppPluginLink newEntandoAppPluginLink = new EntandoAppPluginLinkBuilder()
-                .withNewMetadata()
-                .withNamespace(MY_APP_NAMESPACE)
-                .withName(MY_LINK)
-                .endMetadata()
-                .withNewSpec()
-                .withEntandoApp(MY_APP_NAMESPACE, MY_APP)
-                .withEntandoPlugin(MY_PLUGIN_NAMESPACE, MY_PLUGIN)
-                .endSpec()
-                .build();
-        client.entandoResources().createOrPatchEntandoResource(newEntandoAppPluginLink);
-        linkController.onStartup(new StartupEvent());
-
-        System.setProperty(KubeUtils.ENTANDO_RESOURCE_ACTION, Action.DELETED.name());
-        linkController.onStartup(new StartupEvent());
-        ArgumentCaptor<EntandoAppPluginLink> linkArgumentCaptor = ArgumentCaptor.forClass(EntandoAppPluginLink.class);
-        verify(client.entandoResources()).removeFinalizer(linkArgumentCaptor.capture());
-
-        EntandoAppPluginLink link = linkArgumentCaptor.getValue();
-        assertThat(link.getMetadata().getName(), is(MY_LINK));
-        assertThat(link.getMetadata().getFinalizers().isEmpty(), is(true));
-
-        ArgumentCaptor<Ingress> ingressArgumentCaptor = ArgumentCaptor.forClass(Ingress.class);
-        ArgumentCaptor<HTTPIngressPath> httpIngressPathArgumentCaptorCaptor = ArgumentCaptor.forClass(HTTPIngressPath.class);
-        verify(client.ingresses()).removeHttpPath(ingressArgumentCaptor.capture(), httpIngressPathArgumentCaptorCaptor.capture());
-
-        Ingress ingress = ingressArgumentCaptor.getValue();
-        assertThat(ingress.getMetadata().getLabels().get("EntandoApp"), is(MY_APP));
-
-        HTTPIngressPath path = httpIngressPathArgumentCaptorCaptor.getValue();
-        assertThat(path.getPath(), is(MY_PLUGIN_CONTEXT_PATH));
-        assertThat(path.getBackend().getServicePort().getIntVal(), is(8081));
-    }
-
     private ArgumentMatcher<Permission> matches(Permission permission) {
         return p -> p.getRole().equals(permission.getRole()) && p.getClientId().equals(permission.getClientId());
     }

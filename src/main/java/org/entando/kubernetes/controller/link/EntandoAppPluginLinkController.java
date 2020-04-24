@@ -16,11 +16,8 @@
 
 package org.entando.kubernetes.controller.link;
 
-import io.fabric8.kubernetes.api.model.extensions.HTTPIngressPath;
-import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.quarkus.runtime.StartupEvent;
-import java.util.Optional;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import org.entando.kubernetes.controller.AbstractDbAwareController;
@@ -29,7 +26,6 @@ import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.ServiceDeploymentResult;
 import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
-import org.entando.kubernetes.controller.spi.IngressingPathOnPort;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.link.EntandoAppPluginLink;
 import org.entando.kubernetes.model.link.EntandoAppPluginLinkSpec;
@@ -53,22 +49,6 @@ public class EntandoAppPluginLinkController extends AbstractDbAwareController<En
 
     public void onStartup(@Observes StartupEvent event) {
         processCommand();
-    }
-
-    @Override
-    protected void cleanBeforeDeletion(EntandoAppPluginLink appPluginLink) {
-        EntandoLinkedPluginIngressing entandoLinkedPluginIngressing = prepareEntandoPluginIngressing(appPluginLink);
-        Ingress ingress = entandoLinkedPluginIngressing.getEntandoAppDeploymentResult().getIngress();
-        Optional<IngressingPathOnPort> pluginIngressPath = entandoLinkedPluginIngressing.getIngressingContainers()
-                .stream().findFirst();
-
-        if (pluginIngressPath.isPresent()) {
-            Optional<HTTPIngressPath> pathToRemove = ingress.getSpec().getRules().get(0)
-                    .getHttp().getPaths().stream()
-                    .filter(p -> p.getPath().equals(pluginIngressPath.get().getWebContextPath()))
-                    .findAny();
-            pathToRemove.ifPresent(p -> k8sClient.ingresses().removeHttpPath(ingress, p));
-        }
     }
 
     @Override
