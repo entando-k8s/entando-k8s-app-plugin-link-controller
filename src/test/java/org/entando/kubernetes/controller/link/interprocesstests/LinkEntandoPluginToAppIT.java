@@ -151,7 +151,7 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
     }
 
     @Test
-    public void verifyWidgetRegistration() {
+    public void verifyIngressPathCreation() {
         helper.appPluginLinks().getOperations().create(new EntandoAppPluginLinkBuilder()
                 .withNewMetadata().withNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE).withName(TEST_LINK)
                 .endMetadata()
@@ -165,22 +165,7 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
         await().atMost(60, SECONDS).until(() -> helper.appPluginLinks().getOperations()
                 .inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
                 .withName(TEST_LINK).get().getStatus().getEntandoDeploymentPhase() == EntandoDeploymentPhase.SUCCESSFUL);
-        //Retrieve k8s-operator-token
-        String tokenUrl =
-                TlsHelper.getDefaultProtocol() + "://" + KeycloakIntegrationTestHelper.KEYCLOAK_NAME + "." + helper
-                        .getDomainSuffix()
-                        + "/auth/realms/entando/protocol/openid-connect/token";
-        String operatorToken = HttpTestHelper.getOperatorOAuthToken(tokenUrl);
-        List<String> pluginWidgetsCodes = HttpTestHelper
-                .getPluginsWidgetsCode(TlsHelper.getDefaultProtocol() + "://" + entandoAppHostName + "/avatarPlugin", operatorToken);
-        assertThat("There are some default widgets", !pluginWidgetsCodes.isEmpty());
 
-        List<String> coreInstalledWidgetsCodes = HttpTestHelper
-                .getEntandoCoreWidgetsCode(TlsHelper.getDefaultProtocol() + "://" + entandoAppHostName + "/entando-de-app", operatorToken);
-        assertThat(String.format("[%s] core widgets don't contain [%s]",
-                String.join(", ", coreInstalledWidgetsCodes),
-                String.join(", ", pluginWidgetsCodes)),
-                coreInstalledWidgetsCodes.containsAll(pluginWidgetsCodes));
         List<RoleRepresentation> roles = helper.keycloak()
                 .retrieveServiceAccountRoles(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER,
                         EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAME + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER);
