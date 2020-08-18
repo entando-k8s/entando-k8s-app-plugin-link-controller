@@ -65,7 +65,7 @@ public class LinkAppToPluginCommand {
         String pluginClientId = entandoAppPluginLink.getSpec().getEntandoPluginName() + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER;
         KeycloakConnectionConfig keycloakConnectionConfig = k8sClient.entandoResources()
                 .findKeycloak(entandoLinkedPluginIngressing.getEntandoApp());
-        keycloakClient.login(keycloakConnectionConfig.getBaseUrl(), keycloakConnectionConfig.getUsername(),
+        keycloakClient.login(keycloakConnectionConfig.determineBaseUrl(), keycloakConnectionConfig.getUsername(),
                 keycloakConnectionConfig.getPassword());
         keycloakClient.assignRoleToClientServiceAccount(
                 KubeUtils.ENTANDO_KEYCLOAK_REALM,
