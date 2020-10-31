@@ -97,7 +97,7 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
         client.entandoResources().putEntandoApp(entandoApp);
         client.entandoResources().putEntandoPlugin(entandoPlugin);
         client.secrets().overwriteControllerSecret(buildInfrastructureSecret());
-        client.secrets().overwriteControllerSecret(buildKeycloakSecret());
+        emulateKeycloakDeployment(client);
         this.linkController = new EntandoAppPluginLinkController(client, keycloakClient);
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_ACTION, Action.ADDED.name());
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_NAMESPACE, MY_APP_NAMESPACE);
@@ -115,8 +115,8 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
                 .createOrReplaceService(eq(entandoPlugin), argThat(matchesName(MY_PLUGIN_SERVER_SERVICE))))
                 .then(answerWithClusterIp(CLUSTER_IP));
         //And I have an app and a plugin
-        new DeployCommand<>(new FakeDeployable(entandoApp)).execute(client, Optional.of(keycloakClient));
-        new DeployCommand<>(new FakeDeployable(entandoPlugin)).execute(client, Optional.of(keycloakClient));
+        new DeployCommand<>(new FakeDeployable<>(entandoApp)).execute(client, Optional.of(keycloakClient));
+        new DeployCommand<>(new FakeDeployable<>(entandoPlugin)).execute(client, Optional.of(keycloakClient));
 
         //When I link the plugin to the app
         EntandoAppPluginLink newEntandoAppPluginLink = new EntandoAppPluginLinkBuilder()
@@ -137,8 +137,8 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
                 MY_APP + "-" + KubeUtils.DEFAULT_INGRESS_SUFFIX);
         verify(client.ingresses()).createIngress(eq(entandoApp), ingressArgumentCaptor.capture());
         await().ignoreExceptions().pollInterval(100, TimeUnit.MILLISECONDS).atMost(20, TimeUnit.SECONDS).until(() -> {
-            verify(client.entandoResources()).loadServiceResult(entandoApp);
-            verify(client.entandoResources()).loadServiceResult(entandoPlugin);
+            verify(client.entandoResources()).loadExposedService(entandoApp);
+            verify(client.entandoResources()).loadExposedService(entandoPlugin);
             return true;
         });
         Ingress theIngress = ingressArgumentCaptor.getValue();

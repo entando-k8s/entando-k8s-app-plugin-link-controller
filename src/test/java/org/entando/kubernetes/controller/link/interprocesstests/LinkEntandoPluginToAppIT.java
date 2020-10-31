@@ -70,7 +70,6 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
                         .deleteAll(EntandoApp.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
                         .deleteAll(EntandoPlugin.class).fromNamespace(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAMESPACE)
                         .deleteAll(EntandoAppPluginLink.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE));
-        ensureKeycloak();
         ensureApp();
         ensurePlugin();
         registerListeners();
@@ -86,10 +85,6 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
         }
     }
 
-    private void ensureKeycloak() {
-        helper.keycloak().listenAndRespondWithLatestImage(KeycloakIntegrationTestHelper.KEYCLOAK_NAMESPACE);
-        helper.keycloak().ensureKeycloak();
-    }
 
     private void ensureApp() {
         EntandoApp existingApp = helper.entandoApps().getOperations()
@@ -101,17 +96,18 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
                     .withDbms(DbmsVendor.POSTGRESQL)
                     .withIngressHostName(entandoAppHostName)
                     .withReplicas(1)
-                    .withEntandoImageVersion("6.0.0-SNAPSHOT")
                     .withTlsSecretName(null)
                     .endSpec()
                     .build();
             entandoApp.setMetadata(new ObjectMeta());
             entandoApp.getMetadata().setName(EntandoAppIntegrationTestHelper.TEST_APP_NAME);
-            this.helper.keycloak().deleteKeycloakClients("entando-web", EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-de",
-                    EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-" + "server");
+            this.helper.keycloak()
+                    .deleteKeycloakClients(entandoApp, "entando-web", EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-de",
+                            EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-" + "server");
             this.helper.clusterInfrastructure().ensureInfrastructureSecret();
             String k8sSvcClientId = ClusterInfrastructureIntegrationTestHelper.CLUSTER_INFRASTRUCTURE_NAME + "-k8s-svc";
-            this.helper.keycloak().ensureKeycloakClient(k8sSvcClientId, Collections.singletonList(KubeUtils.ENTANDO_APP_ROLE));
+            this.helper.keycloak()
+                    .ensureKeycloakClient(entandoApp.getSpec(), k8sSvcClientId, Collections.singletonList(KubeUtils.ENTANDO_APP_ROLE));
             helper.entandoApps().listenAndRespondWithLatestImage(EntandoAppIntegrationTestHelper.TEST_NAMESPACE);
             this.helper.entandoApps().createAndWaitForApp(entandoApp, 30, true);
         }
@@ -138,7 +134,8 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
                     .withSecurityLevel(PluginSecurityLevel.STRICT)
                     .endSpec().build();
             String name = entandoPlugin.getMetadata().getName();
-            this.helper.keycloak().deleteKeycloakClients(name + "-confsvc", name + "-" + "server", name + "-sidecar");
+            this.helper.keycloak()
+                    .deleteKeycloakClients(entandoPlugin, name + "-confsvc", name + "-" + "server", name + "-sidecar");
             this.helper.entandoPlugins().listenAndRespondWithLatestImage(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAMESPACE);
             this.helper.entandoPlugins().createAndWaitForPlugin(entandoPlugin, true);
         }
@@ -166,7 +163,8 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
                 .withName(TEST_LINK).get().getStatus().getEntandoDeploymentPhase() == EntandoDeploymentPhase.SUCCESSFUL);
         //Retrieve k8s-operator-token
         List<RoleRepresentation> roles = helper.keycloak()
-                .retrieveServiceAccountRoles(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER,
+                .retrieveServiceAccountRoles(KeycloakIntegrationTestHelper.KEYCLOAK_REALM,
+                        EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER,
                         EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAME + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER);
         assertTrue(roles.stream().anyMatch(roleRepresentation -> roleRepresentation.getName().equals(KubeUtils.ENTANDO_APP_ROLE)));
 

@@ -23,21 +23,21 @@ import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import org.entando.kubernetes.controller.ExposedDeploymentResult;
 import org.entando.kubernetes.controller.KubeUtils;
-import org.entando.kubernetes.controller.ServiceDeploymentResult;
 import org.entando.kubernetes.controller.spi.DeployableContainer;
 import org.entando.kubernetes.controller.spi.IngressingContainer;
 import org.entando.kubernetes.controller.spi.IngressingDeployable;
-import org.entando.kubernetes.model.EntandoCustomResource;
+import org.entando.kubernetes.model.EntandoBaseCustomResource;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.plugin.EntandoPlugin;
 
-public class FakeDeployable implements IngressingDeployable<ServiceDeploymentResult> {
+public class FakeDeployable<T extends EntandoBaseCustomResource<?>> implements IngressingDeployable<ExposedDeploymentResult, T> {
 
-    private final EntandoCustomResource resource;
+    private final T resource;
     private final List<DeployableContainer> containers;
 
-    public FakeDeployable(EntandoCustomResource resource) {
+    public FakeDeployable(T resource) {
         this.resource = resource;
         this.containers = Arrays.asList(new IngressingContainer() {
             @Override
@@ -61,7 +61,12 @@ public class FakeDeployable implements IngressingDeployable<ServiceDeploymentRes
             }
 
             @Override
-            public int getPort() {
+            public int getPrimaryPort() {
+                return getPortForIngressPath();
+            }
+
+            @Override
+            public int getPortForIngressPath() {
                 return resource instanceof EntandoApp ? 8080 : 8081;
 
             }
@@ -89,12 +94,12 @@ public class FakeDeployable implements IngressingDeployable<ServiceDeploymentRes
     }
 
     @Override
-    public EntandoCustomResource getCustomResource() {
+    public T getCustomResource() {
         return resource;
     }
 
     @Override
-    public ServiceDeploymentResult createResult(Deployment deployment, Service service, Ingress ingress, Pod pod) {
-        return new ServiceDeploymentResult(service, ingress);
+    public ExposedDeploymentResult createResult(Deployment deployment, Service service, Ingress ingress, Pod pod) {
+        return new ExposedDeploymentResult(pod, service, ingress);
     }
 }

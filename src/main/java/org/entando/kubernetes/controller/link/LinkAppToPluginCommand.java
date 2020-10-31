@@ -18,10 +18,11 @@ package org.entando.kubernetes.controller.link;
 
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.extensions.Ingress;
+import org.entando.kubernetes.controller.ExposedService;
 import org.entando.kubernetes.controller.KeycloakConnectionConfig;
 import org.entando.kubernetes.controller.KubeUtils;
-import org.entando.kubernetes.controller.ServiceDeploymentResult;
 import org.entando.kubernetes.controller.SimpleKeycloakClient;
+import org.entando.kubernetes.controller.common.KeycloakName;
 import org.entando.kubernetes.controller.creators.IngressPathCreator;
 import org.entando.kubernetes.controller.creators.ServiceCreator;
 import org.entando.kubernetes.controller.k8sclient.ServiceClient;
@@ -29,6 +30,7 @@ import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
 import org.entando.kubernetes.controller.spi.ServiceResult;
 import org.entando.kubernetes.model.AbstractServerStatus;
 import org.entando.kubernetes.model.WebServerStatus;
+import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.link.EntandoAppPluginLink;
 import org.entando.kubernetes.model.plugin.Permission;
 
@@ -58,23 +60,24 @@ public class LinkAppToPluginCommand {
         k8sClient.entandoResources().updateStatus(entandoAppPluginLink, status);
         grantAppAccessToPlugin(k8sClient, keycloakClient);
         //TODO wait for result - when new ingress path is available
-        return new ServiceDeploymentResult(service, ingress);
+        return new ExposedService(service, ingress);
     }
 
     private void grantAppAccessToPlugin(SimpleK8SClient k8sClient, SimpleKeycloakClient keycloakClient) {
+        EntandoApp entandoApp=this.entandoLinkedPluginIngressing.getEntandoApp();
         String pluginClientId = entandoAppPluginLink.getSpec().getEntandoPluginName() + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER;
         KeycloakConnectionConfig keycloakConnectionConfig = k8sClient.entandoResources()
                 .findKeycloak(entandoLinkedPluginIngressing.getEntandoApp());
         keycloakClient.login(keycloakConnectionConfig.determineBaseUrl(), keycloakConnectionConfig.getUsername(),
                 keycloakConnectionConfig.getPassword());
         keycloakClient.assignRoleToClientServiceAccount(
-                KubeUtils.ENTANDO_KEYCLOAK_REALM,
+                KeycloakName.ofTheRealm(entandoApp.getSpec()),
                 entandoAppPluginLink.getSpec().getEntandoAppName() + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER,
                 new Permission(pluginClientId,
                         KubeUtils.ENTANDO_APP_ROLE)
         );
         keycloakClient.assignRoleToClientServiceAccount(
-                KubeUtils.ENTANDO_KEYCLOAK_REALM,
+                KeycloakName.ofTheRealm(entandoApp.getSpec()),
                 entandoAppPluginLink.getSpec().getEntandoAppName() + "-" + COMPONENT_MANAGER_QUALIFIER,
                 new Permission(pluginClientId,
                         KubeUtils.ENTANDO_APP_ROLE)
