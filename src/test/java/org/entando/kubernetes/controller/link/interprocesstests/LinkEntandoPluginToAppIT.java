@@ -64,6 +64,8 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
     public void cleanup() {
         System.setProperty(EntandoOperatorConfigProperty.ENTANDO_POD_COMPLETION_TIMEOUT_SECONDS.getJvmSystemProperty(), "1200");
         System.setProperty(EntandoOperatorConfigProperty.ENTANDO_POD_READINESS_TIMEOUT_SECONDS.getJvmSystemProperty(), "1200");
+        this.helper.keycloak().prepareDefaultKeycloakSecretAndConfigMap();
+        this.helper.keycloak().deleteRealm(KeycloakIntegrationTestHelper.KEYCLOAK_REALM);
         this.entandoAppHostName = EntandoAppIntegrationTestHelper.TEST_APP_NAME + "." + helper.getDomainSuffix();
         this.helper.setTextFixture(
                 deleteAll(EntandoKeycloakServer.class).fromNamespace(KeycloakIntegrationTestHelper.KEYCLOAK_NAMESPACE)
@@ -94,6 +96,9 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
             helper.setTextFixture(deleteAll(EntandoApp.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE));
             EntandoApp entandoApp = new EntandoAppBuilder().withNewSpec().withStandardServerImage(JeeServer.WILDFLY)
                     .withDbms(DbmsVendor.POSTGRESQL)
+                    .withNewKeycloakToUse()
+                    .withRealm(KeycloakIntegrationTestHelper.KEYCLOAK_REALM)
+                    .endKeycloakToUse()
                     .withIngressHostName(entandoAppHostName)
                     .withReplicas(1)
                     .withTlsSecretName(null)
@@ -104,7 +109,7 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
             this.helper.keycloak()
                     .deleteKeycloakClients(entandoApp, "entando-web", EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-de",
                             EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-" + "server");
-            this.helper.clusterInfrastructure().ensureInfrastructureSecret();
+            this.helper.clusterInfrastructure().ensureInfrastructureConnectionConfig();
             String k8sSvcClientId = ClusterInfrastructureIntegrationTestHelper.CLUSTER_INFRASTRUCTURE_NAME + "-k8s-svc";
             this.helper.keycloak()
                     .ensureKeycloakClient(entandoApp.getSpec(), k8sSvcClientId, Collections.singletonList(KubeUtils.ENTANDO_APP_ROLE));
@@ -125,6 +130,9 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
                     .withNamespace(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAMESPACE)
                     .withName(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAME).endMetadata()
                     .withNewSpec()
+                    .withNewKeycloakToUse()
+                    .withRealm(KeycloakIntegrationTestHelper.KEYCLOAK_REALM)
+                    .endKeycloakToUse()
                     .withImage("entando/entando-avatar-plugin")
                     .withDbms(DBMS)
                     .withReplicas(1)

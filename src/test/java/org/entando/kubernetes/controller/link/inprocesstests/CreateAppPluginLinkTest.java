@@ -37,7 +37,7 @@ import io.quarkus.runtime.StartupEvent;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.entando.kubernetes.controller.DeployCommand;
+import org.entando.kubernetes.controller.IngressingDeployCommand;
 import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.inprocesstest.InProcessTestUtil;
@@ -58,7 +58,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -83,7 +82,7 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
     private static final int PORT_8083 = 8083;
     private static final String COMPONENT_MANAGER_QUALIFIER = "de";
     private final EntandoApp entandoApp = newTestEntandoApp();
-    private final EntandoPlugin entandoPlugin = buildTestEntandoPlugin();
+    private final EntandoPlugin entandoPlugin = newTestEntandoPlugin();
     private final EntandoKeycloakServer keycloakServer = newEntandoKeycloakServer();
     @Spy
     private final SimpleK8SClient<EntandoResourceClientDouble> client = new SimpleK8SClientDouble();
@@ -96,7 +95,7 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
     public void putAppAndPlugin() {
         client.entandoResources().putEntandoApp(entandoApp);
         client.entandoResources().putEntandoPlugin(entandoPlugin);
-        client.secrets().overwriteControllerSecret(buildInfrastructureSecret());
+        emulateClusterInfrastuctureDeployment(client);
         emulateKeycloakDeployment(client);
         this.linkController = new EntandoAppPluginLinkController(client, keycloakClient);
         System.setProperty(KubeUtils.ENTANDO_RESOURCE_ACTION, Action.ADDED.name());
@@ -115,8 +114,8 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
                 .createOrReplaceService(eq(entandoPlugin), argThat(matchesName(MY_PLUGIN_SERVER_SERVICE))))
                 .then(answerWithClusterIp(CLUSTER_IP));
         //And I have an app and a plugin
-        new DeployCommand<>(new FakeDeployable<>(entandoApp)).execute(client, Optional.of(keycloakClient));
-        new DeployCommand<>(new FakeDeployable<>(entandoPlugin)).execute(client, Optional.of(keycloakClient));
+        new IngressingDeployCommand<>(new FakeDeployable<>(entandoApp)).execute(client, Optional.of(keycloakClient));
+        new IngressingDeployCommand<>(new FakeDeployable<>(entandoPlugin)).execute(client, Optional.of(keycloakClient));
 
         //When I link the plugin to the app
         EntandoAppPluginLink newEntandoAppPluginLink = new EntandoAppPluginLinkBuilder()

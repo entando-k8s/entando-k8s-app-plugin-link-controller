@@ -40,18 +40,19 @@ public class LinkAppToPluginCommand {
     private final EntandoAppPluginLink entandoAppPluginLink;
     private final IngressPathCreator ingressCreator;
     private final EntandoLinkedPluginIngressing entandoLinkedPluginIngressing;
-    private final ServiceCreator serviceCreator;
+    private final ServiceCreator<?> serviceCreator;
     private final WebServerStatus status = new WebServerStatus("link");
 
     public LinkAppToPluginCommand(EntandoAppPluginLink entandoAppPluginLink, EntandoLinkedPluginIngressing entandoLinkedPluginIngressing) {
         this.entandoAppPluginLink = entandoAppPluginLink;
+        //TODO fix this problem. Links do not have EntandoDeploymentSpecs
         this.serviceCreator = new ServiceCreator(entandoAppPluginLink,
                 entandoLinkedPluginIngressing.getEntandoPluginDeploymentResult().getService());
         this.ingressCreator = new IngressPathCreator(entandoAppPluginLink);
         this.entandoLinkedPluginIngressing = entandoLinkedPluginIngressing;
     }
 
-    public ServiceResult execute(SimpleK8SClient k8sClient, SimpleKeycloakClient keycloakClient) {
+    public ServiceResult execute(SimpleK8SClient<?> k8sClient, SimpleKeycloakClient keycloakClient) {
         Service service = prepareReachableService(k8sClient.services());
         status.setServiceStatus(service.getStatus());
         k8sClient.entandoResources().updateStatus(entandoAppPluginLink, status);
@@ -64,7 +65,7 @@ public class LinkAppToPluginCommand {
     }
 
     private void grantAppAccessToPlugin(SimpleK8SClient k8sClient, SimpleKeycloakClient keycloakClient) {
-        EntandoApp entandoApp=this.entandoLinkedPluginIngressing.getEntandoApp();
+        EntandoApp entandoApp = this.entandoLinkedPluginIngressing.getEntandoApp();
         String pluginClientId = entandoAppPluginLink.getSpec().getEntandoPluginName() + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER;
         KeycloakConnectionConfig keycloakConnectionConfig = k8sClient.entandoResources()
                 .findKeycloak(entandoLinkedPluginIngressing.getEntandoApp());
@@ -90,11 +91,19 @@ public class LinkAppToPluginCommand {
     }
 
     private Service prepareReachableService(ServiceClient services) {
-        if (entandoAppPluginLink.getSpec().getEntandoAppNamespace().equals(entandoAppPluginLink.getSpec().getEntandoPluginNamespace())) {
+        if (getAppServiceNamespace().equals(getPluginServiceNamespace())) {
             return serviceCreator.getService();
         } else {
             return serviceCreator.newDelegatingService(services, entandoLinkedPluginIngressing);
         }
+    }
+
+    private String getPluginServiceNamespace() {
+        return this.entandoLinkedPluginIngressing.getEntandoAppDeploymentResult().getService().getMetadata().getNamespace();
+    }
+
+    private String getAppServiceNamespace() {
+        return this.entandoLinkedPluginIngressing.getEntandoPluginDeploymentResult().getService().getMetadata().getNamespace();
     }
 
     public AbstractServerStatus getStatus() {

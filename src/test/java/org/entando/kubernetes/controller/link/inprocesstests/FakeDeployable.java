@@ -29,15 +29,16 @@ import org.entando.kubernetes.controller.spi.DeployableContainer;
 import org.entando.kubernetes.controller.spi.IngressingContainer;
 import org.entando.kubernetes.controller.spi.IngressingDeployable;
 import org.entando.kubernetes.model.EntandoBaseCustomResource;
+import org.entando.kubernetes.model.EntandoIngressingDeploymentSpec;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.plugin.EntandoPlugin;
 
-public class FakeDeployable<T extends EntandoBaseCustomResource<?>> implements IngressingDeployable<ExposedDeploymentResult, T> {
+public class FakeDeployable<S extends EntandoIngressingDeploymentSpec> implements IngressingDeployable<ExposedDeploymentResult, S> {
 
-    private final T resource;
+    private final EntandoBaseCustomResource<S> resource;
     private final List<DeployableContainer> containers;
 
-    public FakeDeployable(T resource) {
+    public FakeDeployable(EntandoBaseCustomResource<S> resource) {
         this.resource = resource;
         this.containers = Arrays.asList(new IngressingContainer() {
             @Override
@@ -94,7 +95,7 @@ public class FakeDeployable<T extends EntandoBaseCustomResource<?>> implements I
     }
 
     @Override
-    public T getCustomResource() {
+    public EntandoBaseCustomResource<S> getCustomResource() {
         return resource;
     }
 
