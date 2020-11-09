@@ -19,8 +19,8 @@ package org.entando.kubernetes.controller.link;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import org.entando.kubernetes.controller.ExposedService;
 import org.entando.kubernetes.controller.KubeUtils;
-import org.entando.kubernetes.controller.ServiceDeploymentResult;
 import org.entando.kubernetes.controller.spi.Ingressing;
 import org.entando.kubernetes.controller.spi.IngressingPathOnPort;
 import org.entando.kubernetes.model.app.EntandoApp;
@@ -30,16 +30,16 @@ public class EntandoLinkedPluginIngressing implements Ingressing<IngressingPathO
 
     private final EntandoApp entandoApp;
     private final List<IngressingPathOnPort> ingressingPaths;
-    private final ServiceDeploymentResult entandoAppDeploymentResult;
-    private final ServiceDeploymentResult entandoPluginDeploymentResult;
+    private final ExposedService entandoAppDeploymentResult;
+    private final ExposedService entandoPluginDeploymentResult;
 
     public EntandoLinkedPluginIngressing(EntandoApp entandoApp, EntandoPlugin entandoPlugin,
-            ServiceDeploymentResult entandoAppDeploymentResult,
-            ServiceDeploymentResult entandoPluginDeploymentResult) {
+            ExposedService entandoAppDeploymentResult,
+            ExposedService entandoPluginDeploymentResult) {
         this.entandoApp = entandoApp;
         this.ingressingPaths = Arrays.asList(new IngressingPathOnPort() {
             @Override
-            public int getPort() {
+            public int getPortForIngressPath() {
                 return 8081;
             }
 
@@ -81,11 +81,11 @@ public class EntandoLinkedPluginIngressing implements Ingressing<IngressingPathO
         return entandoApp;
     }
 
-    public ServiceDeploymentResult getEntandoAppDeploymentResult() {
+    public ExposedService getEntandoAppDeploymentResult() {
         return entandoAppDeploymentResult;
     }
 
-    public ServiceDeploymentResult getEntandoPluginDeploymentResult() {
+    public ExposedService getEntandoPluginDeploymentResult() {
         return entandoPluginDeploymentResult;
     }
 }
