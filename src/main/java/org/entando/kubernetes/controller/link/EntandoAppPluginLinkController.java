@@ -31,7 +31,7 @@ import org.entando.kubernetes.model.link.EntandoAppPluginLink;
 import org.entando.kubernetes.model.link.EntandoAppPluginLinkSpec;
 import org.entando.kubernetes.model.plugin.EntandoPlugin;
 
-public class EntandoAppPluginLinkController extends AbstractDbAwareController<EntandoAppPluginLink> {
+public class EntandoAppPluginLinkController extends AbstractDbAwareController<EntandoAppPluginLinkSpec, EntandoAppPluginLink> {
 
     @Inject
     public EntandoAppPluginLinkController(KubernetesClient kubernetesClient) {

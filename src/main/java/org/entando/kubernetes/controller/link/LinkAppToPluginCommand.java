@@ -85,7 +85,7 @@ public class LinkAppToPluginCommand {
         );
     }
 
-    private Ingress addMissingIngressPaths(SimpleK8SClient k8sClient, Service service) {
+    private Ingress addMissingIngressPaths(SimpleK8SClient<?> k8sClient, Service service) {
         return ingressCreator.addMissingHttpPaths(k8sClient.ingresses(), entandoLinkedPluginIngressing,
                 entandoLinkedPluginIngressing.getEntandoAppDeploymentResult().getIngress(), service);
     }

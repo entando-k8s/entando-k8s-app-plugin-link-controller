@@ -16,11 +16,13 @@
 
 package org.entando.kubernetes.controller.link.inprocesstests;
 
+import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.entando.kubernetes.controller.ExposedDeploymentResult;
@@ -64,6 +66,11 @@ public class FakeDeployable<S extends EntandoIngressingDeploymentSpec> implement
             @Override
             public int getPrimaryPort() {
                 return getPortForIngressPath();
+            }
+
+            @Override
+            public List<EnvVar> getEnvironmentVariables() {
+                return Collections.emptyList();
             }
 
             @Override
