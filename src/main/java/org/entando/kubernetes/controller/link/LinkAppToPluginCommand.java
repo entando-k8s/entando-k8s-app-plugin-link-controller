@@ -43,10 +43,9 @@ public class LinkAppToPluginCommand {
     private final WebServerStatus status = new WebServerStatus("link");
 
     //TODO fix ServiceCreator not to assume an EntandoDeploymentSpec
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public LinkAppToPluginCommand(EntandoAppPluginLink entandoAppPluginLink, EntandoLinkedPluginIngressing entandoLinkedPluginIngressing) {
         this.entandoAppPluginLink = entandoAppPluginLink;
-        //TODO fix this problem. Links do not have EntandoDeploymentSpecs
         this.serviceCreator = new ServiceCreator(entandoAppPluginLink,
                 entandoLinkedPluginIngressing.getEntandoPluginDeploymentResult().getService());
         this.ingressCreator = new IngressPathCreator(entandoAppPluginLink);
