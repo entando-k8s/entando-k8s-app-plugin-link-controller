@@ -25,11 +25,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import org.entando.kubernetes.controller.ExposedDeploymentResult;
-import org.entando.kubernetes.controller.KubeUtils;
-import org.entando.kubernetes.controller.spi.DeployableContainer;
-import org.entando.kubernetes.controller.spi.IngressingContainer;
-import org.entando.kubernetes.controller.spi.IngressingDeployable;
+import org.entando.kubernetes.controller.spi.common.NameUtils;
+import org.entando.kubernetes.controller.spi.container.DeployableContainer;
+import org.entando.kubernetes.controller.spi.container.IngressingContainer;
+import org.entando.kubernetes.controller.spi.deployable.IngressingDeployable;
+import org.entando.kubernetes.controller.spi.result.ExposedDeploymentResult;
 import org.entando.kubernetes.model.EntandoBaseCustomResource;
 import org.entando.kubernetes.model.EntandoIngressingDeploymentSpec;
 import org.entando.kubernetes.model.app.EntandoApp;
@@ -60,7 +60,7 @@ public class FakeDeployable<S extends EntandoIngressingDeploymentSpec> implement
 
             @Override
             public String getNameQualifier() {
-                return KubeUtils.DEFAULT_SERVER_QUALIFIER;
+                return NameUtils.DEFAULT_SERVER_QUALIFIER;
             }
 
             @Override
@@ -88,7 +88,7 @@ public class FakeDeployable<S extends EntandoIngressingDeploymentSpec> implement
 
     @Override
     public String getIngressName() {
-        return resource.getMetadata().getName() + "-" + KubeUtils.DEFAULT_INGRESS_SUFFIX;
+        return resource.getMetadata().getName() + "-" + NameUtils.DEFAULT_INGRESS_SUFFIX;
     }
 
     @Override
@@ -98,7 +98,7 @@ public class FakeDeployable<S extends EntandoIngressingDeploymentSpec> implement
 
     @Override
     public String getNameQualifier() {
-        return KubeUtils.DEFAULT_SERVER_QUALIFIER;
+        return NameUtils.DEFAULT_SERVER_QUALIFIER;
     }
 
     @Override
@@ -107,7 +107,11 @@ public class FakeDeployable<S extends EntandoIngressingDeploymentSpec> implement
     }
 
     @Override
-    public ExposedDeploymentResult createResult(Deployment deployment, Service service, Ingress ingress, Pod pod) {
-        return new ExposedDeploymentResult(pod, service, ingress);
+    public ExposedDeploymentResult<ExposedDeploymentResult<?>> createResult(
+            Deployment deployment,
+            Service service,
+            Ingress ingress,
+            Pod pod) {
+        return new ExposedDeploymentResult<>(pod, service, ingress);
     }
 }

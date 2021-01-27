@@ -20,12 +20,12 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.quarkus.runtime.StartupEvent;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-import org.entando.kubernetes.controller.AbstractDbAwareController;
-import org.entando.kubernetes.controller.ExposedService;
-import org.entando.kubernetes.controller.IngressingDeployCommand;
-import org.entando.kubernetes.controller.KubeUtils;
-import org.entando.kubernetes.controller.SimpleKeycloakClient;
-import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
+import org.entando.kubernetes.controller.spi.common.NameUtils;
+import org.entando.kubernetes.controller.spi.result.ExposedService;
+import org.entando.kubernetes.controller.support.client.SimpleK8SClient;
+import org.entando.kubernetes.controller.support.client.SimpleKeycloakClient;
+import org.entando.kubernetes.controller.support.common.KubeUtils;
+import org.entando.kubernetes.controller.support.controller.AbstractDbAwareController;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.link.EntandoAppPluginLink;
 import org.entando.kubernetes.model.link.EntandoAppPluginLinkSpec;
@@ -68,8 +68,8 @@ public class EntandoAppPluginLinkController extends AbstractDbAwareController<En
         EntandoPlugin entandoPlugin = k8sClient.entandoResources()
                 .loadEntandoPlugin(spec.getEntandoPluginNamespace().orElse(newEntandoAppPluginLink.getMetadata().getNamespace()),
                         spec.getEntandoPluginName());
-        k8sClient.pods().waitForPod(entandoPlugin.getMetadata().getNamespace(), IngressingDeployCommand.DEPLOYMENT_LABEL_NAME,
-                entandoPlugin.getMetadata().getName() + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER);
+        k8sClient.pods().waitForPod(entandoPlugin.getMetadata().getNamespace(), KubeUtils.DEPLOYMENT_LABEL_NAME,
+                entandoPlugin.getMetadata().getName() + "-" + NameUtils.DEFAULT_SERVER_QUALIFIER);
         ExposedService entandoAppDeploymentResult = k8sClient.entandoResources().loadExposedService(entandoApp);
         ExposedService entandoPluginDeploymentResult = k8sClient.entandoResources().loadExposedService(entandoPlugin);
         return new EntandoLinkedPluginIngressing(entandoApp, entandoPlugin, entandoAppDeploymentResult, entandoPluginDeploymentResult);

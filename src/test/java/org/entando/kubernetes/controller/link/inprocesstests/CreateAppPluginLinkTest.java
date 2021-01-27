@@ -34,18 +34,18 @@ import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import io.fabric8.kubernetes.api.model.extensions.IngressStatus;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.quarkus.runtime.StartupEvent;
-import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.entando.kubernetes.controller.IngressingDeployCommand;
-import org.entando.kubernetes.controller.KubeUtils;
-import org.entando.kubernetes.controller.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.inprocesstest.InProcessTestUtil;
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.NamedArgumentCaptor;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.EntandoResourceClientDouble;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.SimpleK8SClientDouble;
-import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
 import org.entando.kubernetes.controller.link.EntandoAppPluginLinkController;
+import org.entando.kubernetes.controller.spi.common.NameUtils;
+import org.entando.kubernetes.controller.support.client.SimpleK8SClient;
+import org.entando.kubernetes.controller.support.client.SimpleKeycloakClient;
+import org.entando.kubernetes.controller.support.command.IngressingDeployCommand;
+import org.entando.kubernetes.controller.support.common.KubeUtils;
 import org.entando.kubernetes.controller.test.support.FluentTraversals;
 import org.entando.kubernetes.controller.test.support.VariableReferenceAssertions;
 import org.entando.kubernetes.model.app.EntandoApp;
@@ -67,8 +67,9 @@ import org.mockito.stubbing.Answer;
 @ExtendWith(MockitoExtension.class)
 //in execute component test
 @Tag("in-process")
-
-public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTraversals, VariableReferenceAssertions {
+//Because Sonar doesn't pick up custom captors
+@SuppressWarnings("java:S6073")
+class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTraversals, VariableReferenceAssertions {
 
     public static final String MY_LINK = "my-link";
     private static final String MY_PLUGIN_SERVER = MY_PLUGIN + "-server";
@@ -104,7 +105,7 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
     }
 
     @Test
-    public void testService() throws IOException, InterruptedException {
+    void testService() {
         //Given that K8S is up and receiving Ingress requests
         IngressStatus ingressStatus = new IngressStatus();
         lenient().when(client.ingresses()
@@ -133,7 +134,7 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
 
         //Then K8S was instructed to create an Ingress for the Plugin JEE Server
         NamedArgumentCaptor<Ingress> ingressArgumentCaptor = forResourceNamed(Ingress.class,
-                MY_APP + "-" + KubeUtils.DEFAULT_INGRESS_SUFFIX);
+                MY_APP + "-" + NameUtils.DEFAULT_INGRESS_SUFFIX);
         verify(client.ingresses()).createIngress(eq(entandoApp), ingressArgumentCaptor.capture());
         await().ignoreExceptions().pollInterval(100, TimeUnit.MILLISECONDS).atMost(20, TimeUnit.SECONDS).until(() -> {
             verify(client.entandoResources()).loadExposedService(entandoApp);
@@ -170,13 +171,13 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
 
         //And the EntandoApp's Ingress state was reloaded from K8S
         verify(client.ingresses(), atLeastOnce())
-                .loadIngress(eq(entandoApp.getMetadata().getNamespace()), eq(MY_APP + "-" + KubeUtils.DEFAULT_INGRESS_SUFFIX));
+                .loadIngress(entandoApp.getMetadata().getNamespace(), MY_APP + "-" + NameUtils.DEFAULT_INGRESS_SUFFIX);
 
         //And K8S was instructed to update the status of the EntandoPlugin with the status of the ingress
         verify(client.entandoResources(), atLeastOnce())
                 .updateStatus(eq(newEntandoAppPluginLink), argThat(matchesIngressStatus(ingressStatus)));
         verify(keycloakClient)
-                .assignRoleToClientServiceAccount(eq(ENTANDO_KEYCLOAK_REALM), eq(MY_APP + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER),
+                .assignRoleToClientServiceAccount(eq(ENTANDO_KEYCLOAK_REALM), eq(MY_APP + "-" + NameUtils.DEFAULT_SERVER_QUALIFIER),
                         argThat(matches(new Permission(MY_PLUGIN_SERVER, KubeUtils.ENTANDO_APP_ROLE))));
         verify(keycloakClient)
                 .assignRoleToClientServiceAccount(eq(ENTANDO_KEYCLOAK_REALM),

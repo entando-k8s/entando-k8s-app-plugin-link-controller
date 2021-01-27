@@ -23,8 +23,6 @@ import io.fabric8.kubernetes.api.model.extensions.HTTPIngressPath;
 import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import java.util.Collections;
 import java.util.List;
-import org.entando.kubernetes.controller.EntandoOperatorConfigProperty;
-import org.entando.kubernetes.controller.KubeUtils;
 import org.entando.kubernetes.controller.integrationtest.support.ClusterInfrastructureIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.EntandoAppIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.EntandoOperatorTestConfig;
@@ -34,6 +32,9 @@ import org.entando.kubernetes.controller.integrationtest.support.FluentIntegrati
 import org.entando.kubernetes.controller.integrationtest.support.K8SIntegrationTestHelper;
 import org.entando.kubernetes.controller.integrationtest.support.KeycloakIntegrationTestHelper;
 import org.entando.kubernetes.controller.link.EntandoAppPluginLinkController;
+import org.entando.kubernetes.controller.spi.common.NameUtils;
+import org.entando.kubernetes.controller.support.common.EntandoOperatorConfigProperty;
+import org.entando.kubernetes.controller.support.common.KubeUtils;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.EntandoDeploymentPhase;
 import org.entando.kubernetes.model.JeeServer;
@@ -53,7 +54,7 @@ import org.junit.jupiter.api.Test;
 import org.keycloak.representations.idm.RoleRepresentation;
 
 @Tags({@Tag("end-to-end"), @Tag("smoke"), @Tag("inter-process")})
-public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
+class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
 
     public static final String TEST_LINK = "test-link";
     private static final DbmsVendor DBMS = DbmsVendor.POSTGRESQL;
@@ -86,7 +87,6 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
                     .listenAndRespondWithStartupEvent(EntandoAppIntegrationTestHelper.TEST_NAMESPACE, controller::onStartup);
         }
     }
-
 
     private void ensureApp() {
         EntandoApp existingApp = helper.entandoApps().getOperations()
@@ -155,7 +155,7 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
     }
 
     @Test
-    public void verifyIngressPathCreation() {
+    void verifyIngressPathCreation() {
         helper.appPluginLinks().getOperations().create(new EntandoAppPluginLinkBuilder()
                 .withNewMetadata().withNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE).withName(TEST_LINK)
                 .endMetadata()
@@ -172,8 +172,8 @@ public class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
         //Retrieve k8s-operator-token
         List<RoleRepresentation> roles = helper.keycloak()
                 .retrieveServiceAccountRoles(KeycloakIntegrationTestHelper.KEYCLOAK_REALM,
-                        EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER,
-                        EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAME + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER);
+                        EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-" + NameUtils.DEFAULT_SERVER_QUALIFIER,
+                        EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAME + "-" + NameUtils.DEFAULT_SERVER_QUALIFIER);
         assertTrue(roles.stream().anyMatch(roleRepresentation -> roleRepresentation.getName().equals(KubeUtils.ENTANDO_APP_ROLE)));
 
         Ingress appIngress = helper.getClient().extensions().ingresses()
