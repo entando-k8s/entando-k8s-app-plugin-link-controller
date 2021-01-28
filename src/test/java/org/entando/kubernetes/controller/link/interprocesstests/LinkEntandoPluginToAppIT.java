@@ -94,7 +94,7 @@ class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
         if (existingApp == null || existingApp.getStatus().getEntandoDeploymentPhase() != EntandoDeploymentPhase.SUCCESSFUL) {
             helper.setTextFixture(deleteAll(EntandoApp.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE));
             EntandoApp entandoApp = new EntandoAppBuilder().withNewSpec().withStandardServerImage(JeeServer.WILDFLY)
-                    .withDbms(DbmsVendor.EMBEDDED)
+                    .withDbms(DbmsVendor.POSTGRESQL)
                     .withNewKeycloakToUse()
                     .withRealm(KeycloakIntegrationTestHelper.KEYCLOAK_REALM)
                     .endKeycloakToUse()
