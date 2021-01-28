@@ -25,7 +25,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import io.fabric8.kubernetes.api.model.Endpoints;
@@ -193,7 +192,8 @@ class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTraversals, Va
         lenient().when(client.ingresses()
                 .addHttpPath(any(Ingress.class), argThat(matchesHttpPath(MY_PLUGIN_CONTEXT_PATH)), anyMap()))
                 .then(answerWithIngressStatus(ingressStatus));
-        final EntandoPlugin newPlugin = new EntandoPluginBuilder(this.entandoPlugin).editSpec().withIngressHostName("shared.com").endSpec().build();
+        final EntandoPlugin newPlugin = new EntandoPluginBuilder(this.entandoPlugin).editSpec().withIngressHostName("shared.com").endSpec()
+                .build();
         final EntandoApp newApp = new EntandoAppBuilder(this.entandoApp).editSpec().withIngressHostName("shared.com").endSpec().build();
         client.entandoResources().putEntandoApp(newApp);
         client.entandoResources().putEntandoPlugin(newPlugin);
@@ -233,8 +233,7 @@ class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTraversals, Va
         assertThat(pluginIngress.getSpec().getRules().get(0).getHttp().getPaths().size(), is(1));
         //And no additional paths were added to the app's ingress
         assertThat(appIngress.getSpec().getRules().get(0).getHttp().getPaths().size(), is(1));
-        assertThat(appIngress.getSpec().getRules().get(0).getHost(), is( pluginIngress.getSpec().getRules().get(0).getHost()));
-
+        assertThat(appIngress.getSpec().getRules().get(0).getHost(), is(pluginIngress.getSpec().getRules().get(0).getHost()));
 
     }
 
