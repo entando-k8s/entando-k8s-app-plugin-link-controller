@@ -113,7 +113,7 @@ class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
             this.helper.keycloak()
                     .ensureKeycloakClient(entandoApp.getSpec(), k8sSvcClientId, Collections.singletonList(KubeUtils.ENTANDO_APP_ROLE));
             helper.entandoApps().listenAndRespondWithLatestImage(EntandoAppIntegrationTestHelper.TEST_NAMESPACE);
-            this.helper.entandoApps().createAndWaitForApp(entandoApp, 30, false);
+            this.helper.entandoApps().createAndWaitForApp(entandoApp, 30, true);
         }
     }
 
@@ -144,7 +144,7 @@ class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
             this.helper.keycloak()
                     .deleteKeycloakClients(entandoPlugin, name + "-confsvc", name + "-" + "server", name + "-sidecar");
             this.helper.entandoPlugins().listenAndRespondWithLatestImage(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAMESPACE);
-            this.helper.entandoPlugins().createAndWaitForPlugin(entandoPlugin, false);
+            this.helper.entandoPlugins().createAndWaitForPlugin(entandoPlugin, true);
         }
     }
 
