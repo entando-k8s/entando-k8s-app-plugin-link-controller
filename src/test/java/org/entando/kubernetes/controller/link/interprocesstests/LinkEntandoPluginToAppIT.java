@@ -129,7 +129,7 @@ class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
                     .withNamespace(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAMESPACE)
                     .withName(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAME).endMetadata()
                     .withNewSpec()
-                    .withDbms(DbmsVendor.EMBEDDED)
+                    .withDbms(DbmsVendor.POSTGRESQL)
                     .withNewKeycloakToUse()
                     .withRealm(KeycloakIntegrationTestHelper.KEYCLOAK_REALM)
                     .endKeycloakToUse()
