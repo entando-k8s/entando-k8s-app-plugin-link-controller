@@ -53,12 +53,18 @@ public class LinkAppToPluginCommand {
     }
 
     public void execute(SimpleK8SClient<?> k8sClient, SimpleKeycloakClient keycloakClient) {
-        Service service = prepareReachableService(k8sClient.services());
-        status.setServiceStatus(service.getStatus());
-        k8sClient.entandoResources().updateStatus(entandoAppPluginLink, status);
-        Ingress ingress = addMissingIngressPaths(k8sClient, service);
-        status.setIngressStatus(ingress.getStatus());
-        k8sClient.entandoResources().updateStatus(entandoAppPluginLink, status);
+        if (entandoLinkedPluginIngressing.usingSameHostname()) {
+            status.setServiceStatus(entandoLinkedPluginIngressing.getEntandoPluginDeploymentResult().getService().getStatus());
+            status.setIngressStatus(entandoLinkedPluginIngressing.getEntandoPluginDeploymentResult().getIngress().getStatus());
+            k8sClient.entandoResources().updateStatus(entandoAppPluginLink, status);
+        } else {
+            Service service = prepareReachableService(k8sClient.services());
+            status.setServiceStatus(service.getStatus());
+            k8sClient.entandoResources().updateStatus(entandoAppPluginLink, status);
+            Ingress ingress = addMissingIngressPaths(k8sClient, service);
+            status.setIngressStatus(ingress.getStatus());
+            k8sClient.entandoResources().updateStatus(entandoAppPluginLink, status);
+        }
         grantAppAccessToPlugin(k8sClient, keycloakClient);
         //TODO wait for result - when new ingress path is available
     }

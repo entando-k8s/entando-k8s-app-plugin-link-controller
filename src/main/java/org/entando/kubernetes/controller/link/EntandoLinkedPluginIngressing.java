@@ -57,6 +57,12 @@ public class EntandoLinkedPluginIngressing implements Ingressing<IngressingPathO
         this.entandoPluginDeploymentResult = entandoPluginDeploymentResult;
     }
 
+    public boolean usingSameHostname() {
+        return getEntandoAppDeploymentResult().getIngress().getSpec().getRules().get(0).getHost().equals(
+                getEntandoPluginDeploymentResult().getIngress().getSpec().getRules().get(0).getHost()
+        );
+    }
+
     @Override
     public List<IngressingPathOnPort> getIngressingContainers() {
         return ingressingPaths;
