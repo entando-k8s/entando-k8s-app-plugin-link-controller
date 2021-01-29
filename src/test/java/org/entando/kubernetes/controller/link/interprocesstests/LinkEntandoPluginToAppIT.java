@@ -94,7 +94,7 @@ class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
         if (existingApp == null || existingApp.getStatus().getEntandoDeploymentPhase() != EntandoDeploymentPhase.SUCCESSFUL) {
             helper.setTextFixture(deleteAll(EntandoApp.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE));
             EntandoApp entandoApp = new EntandoAppBuilder().withNewSpec().withStandardServerImage(JeeServer.WILDFLY)
-                    .withDbms(DbmsVendor.POSTGRESQL)
+                    .withDbms(DbmsVendor.EMBEDDED)
                     .withNewKeycloakToUse()
                     .withRealm(KeycloakIntegrationTestHelper.KEYCLOAK_REALM)
                     .endKeycloakToUse()
@@ -113,7 +113,7 @@ class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
             this.helper.keycloak()
                     .ensureKeycloakClient(entandoApp.getSpec(), k8sSvcClientId, Collections.singletonList(KubeUtils.ENTANDO_APP_ROLE));
             helper.entandoApps().listenAndRespondWithLatestImage(EntandoAppIntegrationTestHelper.TEST_NAMESPACE);
-            this.helper.entandoApps().createAndWaitForApp(entandoApp, 30, true);
+            this.helper.entandoApps().createAndWaitForApp(entandoApp, 30, false);
         }
     }
 
@@ -129,7 +129,7 @@ class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
                     .withNamespace(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAMESPACE)
                     .withName(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAME).endMetadata()
                     .withNewSpec()
-                    .withDbms(DbmsVendor.POSTGRESQL)
+                    .withDbms(DbmsVendor.EMBEDDED)
                     .withNewKeycloakToUse()
                     .withRealm(KeycloakIntegrationTestHelper.KEYCLOAK_REALM)
                     .endKeycloakToUse()
@@ -144,7 +144,7 @@ class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
             this.helper.keycloak()
                     .deleteKeycloakClients(entandoPlugin, name + "-confsvc", name + "-" + "server", name + "-sidecar");
             this.helper.entandoPlugins().listenAndRespondWithLatestImage(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAMESPACE);
-            this.helper.entandoPlugins().createAndWaitForPlugin(entandoPlugin, true);
+            this.helper.entandoPlugins().createAndWaitForPlugin(entandoPlugin, false);
         }
     }
 
