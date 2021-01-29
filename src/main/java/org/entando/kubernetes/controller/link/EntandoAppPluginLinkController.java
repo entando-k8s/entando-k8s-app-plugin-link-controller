@@ -63,10 +63,10 @@ public class EntandoAppPluginLinkController extends AbstractDbAwareController<En
     private EntandoLinkedPluginIngressing prepareEntandoPluginIngressing(EntandoAppPluginLink newEntandoAppPluginLink) {
         EntandoAppPluginLinkSpec spec = newEntandoAppPluginLink.getSpec();
         EntandoApp entandoApp = k8sClient.entandoResources()
-                .loadEntandoApp(spec.getEntandoAppNamespace().orElse(newEntandoAppPluginLink.getMetadata().getNamespace()),
+                .load(EntandoApp.class, spec.getEntandoAppNamespace().orElse(newEntandoAppPluginLink.getMetadata().getNamespace()),
                         spec.getEntandoAppName());
         EntandoPlugin entandoPlugin = k8sClient.entandoResources()
-                .loadEntandoPlugin(spec.getEntandoPluginNamespace().orElse(newEntandoAppPluginLink.getMetadata().getNamespace()),
+                .load(EntandoPlugin.class, spec.getEntandoPluginNamespace().orElse(newEntandoAppPluginLink.getMetadata().getNamespace()),
                         spec.getEntandoPluginName());
         k8sClient.pods().waitForPod(entandoPlugin.getMetadata().getNamespace(), KubeUtils.DEPLOYMENT_LABEL_NAME,
                 entandoPlugin.getMetadata().getName() + "-" + NameUtils.DEFAULT_SERVER_QUALIFIER);

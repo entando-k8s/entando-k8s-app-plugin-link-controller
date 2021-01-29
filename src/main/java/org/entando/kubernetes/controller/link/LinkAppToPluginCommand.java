@@ -39,7 +39,7 @@ public class LinkAppToPluginCommand {
     private final EntandoAppPluginLink entandoAppPluginLink;
     private final IngressPathCreator ingressCreator;
     private final EntandoLinkedPluginIngressing entandoLinkedPluginIngressing;
-    private final ServiceCreator<?> serviceCreator;
+    private final ServiceCreator serviceCreator;
     private final WebServerStatus status = new WebServerStatus("link");
 
     //TODO fix ServiceCreator not to assume an EntandoDeploymentSpec

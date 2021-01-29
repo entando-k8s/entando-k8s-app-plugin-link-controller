@@ -28,19 +28,20 @@ import java.util.Optional;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.spi.container.DeployableContainer;
 import org.entando.kubernetes.controller.spi.container.IngressingContainer;
-import org.entando.kubernetes.controller.spi.deployable.IngressingDeployable;
 import org.entando.kubernetes.controller.spi.result.ExposedDeploymentResult;
+import org.entando.kubernetes.controller.support.spibase.IngressingDeployableBase;
 import org.entando.kubernetes.model.EntandoBaseCustomResource;
-import org.entando.kubernetes.model.EntandoIngressingDeploymentSpec;
+import org.entando.kubernetes.model.EntandoCustomResource;
+import org.entando.kubernetes.model.EntandoDeploymentSpec;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.plugin.EntandoPlugin;
 
-public class FakeDeployable<S extends EntandoIngressingDeploymentSpec> implements IngressingDeployable<ExposedDeploymentResult, S> {
+public class FakeDeployable<T extends ExposedDeploymentResult<T>> implements IngressingDeployableBase<T> {
 
-    private final EntandoBaseCustomResource<S> resource;
+    private final EntandoBaseCustomResource<? extends EntandoDeploymentSpec> resource;
     private final List<DeployableContainer> containers;
 
-    public FakeDeployable(EntandoBaseCustomResource<S> resource) {
+    public FakeDeployable(EntandoBaseCustomResource<? extends EntandoDeploymentSpec> resource) {
         this.resource = resource;
         this.containers = Arrays.asList(new IngressingContainer() {
             @Override
@@ -102,16 +103,18 @@ public class FakeDeployable<S extends EntandoIngressingDeploymentSpec> implement
     }
 
     @Override
-    public EntandoBaseCustomResource<S> getCustomResource() {
+    public EntandoCustomResource getCustomResource() {
         return resource;
     }
 
     @Override
-    public ExposedDeploymentResult<ExposedDeploymentResult<?>> createResult(
-            Deployment deployment,
-            Service service,
-            Ingress ingress,
-            Pod pod) {
-        return new ExposedDeploymentResult<>(pod, service, ingress);
+    @SuppressWarnings("unchecked")
+    public T createResult(Deployment deployment, Service service, Ingress ingress, Pod pod) {
+        return (T) new ExposedDeploymentResult<T>(pod, service, ingress);
+    }
+
+    @Override
+    public String getServiceAccountToUse() {
+        return resource.getSpec().getServiceAccountToUse().orElse(getDefaultServiceAccountName());
     }
 }
