@@ -68,6 +68,7 @@
         <entando-k8s-custom-model.version>6.3.0</entando-k8s-custom-model.version>
         <preDeploymentTestGroups>in-process</preDeploymentTestGroups>
         <postDeploymentTestGroups>end-to-end</postDeploymentTestGroups>
+        <skipLicenseDownload>true</skipLicenseDownload>
     </properties>
     <issueManagement>
         <system>Github</system>
