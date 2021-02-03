@@ -9,10 +9,6 @@ pipelineConfig:
       value: "strict"
     - name: ENTANDO_DOCKER_IMAGE_INFO_CONFIGMAP
       value: "entando-docker-image-info-v6.3"
-    - name: RELATED_IMAGE_ENTANDO_K8S_PLUGIN_CONTROLLER
-      value: entando/entando-k8s-plugin-controller@sha256:236ab473dcc3f07822b9197e09923bd2c881b408e3a0be986044aa1c18b33793
-    - name: RELATED_IMAGE_ENTANDO_K8S_APP_CONTROLLER
-      value:  entando/entando-k8s-app-controller@sha256:1b7b74bcdde6502c8f47df50d0983e799c56e0ed3ed3b10e5c0e64be38f63b3b
     - name: EXECUTABLE_TYPE
       valueFrom:
         secretKeyRef:

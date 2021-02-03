@@ -43,7 +43,6 @@ public class LinkAppToPluginCommand {
     private final WebServerStatus status = new WebServerStatus("link");
 
     //TODO fix ServiceCreator not to assume an EntandoDeploymentSpec
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public LinkAppToPluginCommand(EntandoAppPluginLink entandoAppPluginLink, EntandoLinkedPluginIngressing entandoLinkedPluginIngressing) {
         this.entandoAppPluginLink = entandoAppPluginLink;
         this.serviceCreator = new ServiceCreator(entandoAppPluginLink,
@@ -73,17 +72,18 @@ public class LinkAppToPluginCommand {
         EntandoApp entandoApp = this.entandoLinkedPluginIngressing.getEntandoApp();
         String pluginClientId = entandoAppPluginLink.getSpec().getEntandoPluginName() + "-" + NameUtils.DEFAULT_SERVER_QUALIFIER;
         KeycloakConnectionConfig keycloakConnectionConfig = k8sClient.entandoResources()
-                .findKeycloak(entandoLinkedPluginIngressing.getEntandoApp());
+                .findKeycloak(entandoLinkedPluginIngressing.getEntandoApp(),
+                        entandoLinkedPluginIngressing.getEntandoApp().getSpec()::getKeycloakToUse);
         keycloakClient.login(keycloakConnectionConfig.determineBaseUrl(), keycloakConnectionConfig.getUsername(),
                 keycloakConnectionConfig.getPassword());
         keycloakClient.assignRoleToClientServiceAccount(
-                KeycloakName.ofTheRealm(entandoApp.getSpec()),
+                KeycloakName.ofTheRealm(entandoApp.getSpec()::getKeycloakToUse),
                 entandoAppPluginLink.getSpec().getEntandoAppName() + "-" + NameUtils.DEFAULT_SERVER_QUALIFIER,
                 new Permission(pluginClientId,
                         KubeUtils.ENTANDO_APP_ROLE)
         );
         keycloakClient.assignRoleToClientServiceAccount(
-                KeycloakName.ofTheRealm(entandoApp.getSpec()),
+                KeycloakName.ofTheRealm(entandoApp.getSpec()::getKeycloakToUse),
                 entandoAppPluginLink.getSpec().getEntandoAppName() + "-" + COMPONENT_MANAGER_QUALIFIER,
                 new Permission(pluginClientId,
                         KubeUtils.ENTANDO_APP_ROLE)
