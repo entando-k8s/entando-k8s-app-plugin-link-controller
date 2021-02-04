@@ -34,25 +34,26 @@ import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import io.fabric8.kubernetes.api.model.extensions.IngressStatus;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.quarkus.runtime.StartupEvent;
-import java.io.IOException;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.entando.kubernetes.controller.IngressingDeployCommand;
-import org.entando.kubernetes.controller.KubeUtils;
-import org.entando.kubernetes.controller.SimpleKeycloakClient;
+import org.entando.kubernetes.controller.common.examples.SampleExposedDeploymentResult;
 import org.entando.kubernetes.controller.inprocesstest.InProcessTestUtil;
 import org.entando.kubernetes.controller.inprocesstest.argumentcaptors.NamedArgumentCaptor;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.EntandoResourceClientDouble;
 import org.entando.kubernetes.controller.inprocesstest.k8sclientdouble.SimpleK8SClientDouble;
-import org.entando.kubernetes.controller.k8sclient.SimpleK8SClient;
 import org.entando.kubernetes.controller.link.EntandoAppPluginLinkController;
+import org.entando.kubernetes.controller.spi.common.NameUtils;
+import org.entando.kubernetes.controller.support.client.SimpleK8SClient;
+import org.entando.kubernetes.controller.support.client.SimpleKeycloakClient;
+import org.entando.kubernetes.controller.support.command.IngressingDeployCommand;
+import org.entando.kubernetes.controller.support.common.KubeUtils;
 import org.entando.kubernetes.controller.test.support.FluentTraversals;
 import org.entando.kubernetes.controller.test.support.VariableReferenceAssertions;
 import org.entando.kubernetes.model.app.EntandoApp;
-import org.entando.kubernetes.model.keycloakserver.EntandoKeycloakServer;
+import org.entando.kubernetes.model.app.EntandoAppBuilder;
 import org.entando.kubernetes.model.link.EntandoAppPluginLink;
 import org.entando.kubernetes.model.link.EntandoAppPluginLinkBuilder;
 import org.entando.kubernetes.model.plugin.EntandoPlugin;
+import org.entando.kubernetes.model.plugin.EntandoPluginBuilder;
 import org.entando.kubernetes.model.plugin.Permission;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -67,8 +68,9 @@ import org.mockito.stubbing.Answer;
 @ExtendWith(MockitoExtension.class)
 //in execute component test
 @Tag("in-process")
-
-public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTraversals, VariableReferenceAssertions {
+//Because Sonar doesn't pick up custom captors
+@SuppressWarnings("java:S6073")
+class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTraversals, VariableReferenceAssertions {
 
     public static final String MY_LINK = "my-link";
     private static final String MY_PLUGIN_SERVER = MY_PLUGIN + "-server";
@@ -83,7 +85,6 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
     private static final String COMPONENT_MANAGER_QUALIFIER = "de";
     private final EntandoApp entandoApp = newTestEntandoApp();
     private final EntandoPlugin entandoPlugin = newTestEntandoPlugin();
-    private final EntandoKeycloakServer keycloakServer = newEntandoKeycloakServer();
     @Spy
     private final SimpleK8SClient<EntandoResourceClientDouble> client = new SimpleK8SClientDouble();
     @Mock
@@ -93,8 +94,6 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
 
     @BeforeEach
     public void putAppAndPlugin() {
-        client.entandoResources().putEntandoApp(entandoApp);
-        client.entandoResources().putEntandoPlugin(entandoPlugin);
         emulateClusterInfrastuctureDeployment(client);
         emulateKeycloakDeployment(client);
         this.linkController = new EntandoAppPluginLinkController(client, keycloakClient);
@@ -104,8 +103,10 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
     }
 
     @Test
-    public void testService() throws IOException, InterruptedException {
+    void testBasicFlow() {
         //Given that K8S is up and receiving Ingress requests
+        client.entandoResources().createOrPatchEntandoResource(entandoApp);
+        client.entandoResources().createOrPatchEntandoResource(entandoPlugin);
         IngressStatus ingressStatus = new IngressStatus();
         lenient().when(client.ingresses()
                 .addHttpPath(any(Ingress.class), argThat(matchesHttpPath(MY_PLUGIN_CONTEXT_PATH)), anyMap()))
@@ -114,8 +115,8 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
                 .createOrReplaceService(eq(entandoPlugin), argThat(matchesName(MY_PLUGIN_SERVER_SERVICE))))
                 .then(answerWithClusterIp(CLUSTER_IP));
         //And I have an app and a plugin
-        new IngressingDeployCommand<>(new FakeDeployable<>(entandoApp)).execute(client, Optional.of(keycloakClient));
-        new IngressingDeployCommand<>(new FakeDeployable<>(entandoPlugin)).execute(client, Optional.of(keycloakClient));
+        new IngressingDeployCommand<SampleExposedDeploymentResult>(new FakeDeployable<>(entandoApp)).execute(client, keycloakClient);
+        new IngressingDeployCommand<SampleExposedDeploymentResult>(new FakeDeployable<>(entandoPlugin)).execute(client, keycloakClient);
 
         //When I link the plugin to the app
         EntandoAppPluginLink newEntandoAppPluginLink = new EntandoAppPluginLinkBuilder()
@@ -133,7 +134,7 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
 
         //Then K8S was instructed to create an Ingress for the Plugin JEE Server
         NamedArgumentCaptor<Ingress> ingressArgumentCaptor = forResourceNamed(Ingress.class,
-                MY_APP + "-" + KubeUtils.DEFAULT_INGRESS_SUFFIX);
+                MY_APP + "-" + NameUtils.DEFAULT_INGRESS_SUFFIX);
         verify(client.ingresses()).createIngress(eq(entandoApp), ingressArgumentCaptor.capture());
         await().ignoreExceptions().pollInterval(100, TimeUnit.MILLISECONDS).atMost(20, TimeUnit.SECONDS).until(() -> {
             verify(client.entandoResources()).loadExposedService(entandoApp);
@@ -170,18 +171,67 @@ public class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTravers
 
         //And the EntandoApp's Ingress state was reloaded from K8S
         verify(client.ingresses(), atLeastOnce())
-                .loadIngress(eq(entandoApp.getMetadata().getNamespace()), eq(MY_APP + "-" + KubeUtils.DEFAULT_INGRESS_SUFFIX));
+                .loadIngress(entandoApp.getMetadata().getNamespace(), MY_APP + "-" + NameUtils.DEFAULT_INGRESS_SUFFIX);
 
         //And K8S was instructed to update the status of the EntandoPlugin with the status of the ingress
         verify(client.entandoResources(), atLeastOnce())
                 .updateStatus(eq(newEntandoAppPluginLink), argThat(matchesIngressStatus(ingressStatus)));
         verify(keycloakClient)
-                .assignRoleToClientServiceAccount(eq(ENTANDO_KEYCLOAK_REALM), eq(MY_APP + "-" + KubeUtils.DEFAULT_SERVER_QUALIFIER),
+                .assignRoleToClientServiceAccount(eq(ENTANDO_KEYCLOAK_REALM), eq(MY_APP + "-" + NameUtils.DEFAULT_SERVER_QUALIFIER),
                         argThat(matches(new Permission(MY_PLUGIN_SERVER, KubeUtils.ENTANDO_APP_ROLE))));
         verify(keycloakClient)
                 .assignRoleToClientServiceAccount(eq(ENTANDO_KEYCLOAK_REALM),
                         eq(MY_APP + "-" + COMPONENT_MANAGER_QUALIFIER),
                         argThat(matches(new Permission(MY_PLUGIN_SERVER, KubeUtils.ENTANDO_APP_ROLE))));
+    }
+
+    @Test
+    void testSharedHostname() {
+        //Given that K8S is up and receiving Ingress requests
+        IngressStatus ingressStatus = new IngressStatus();
+        lenient().when(client.ingresses()
+                .addHttpPath(any(Ingress.class), argThat(matchesHttpPath(MY_PLUGIN_CONTEXT_PATH)), anyMap()))
+                .then(answerWithIngressStatus(ingressStatus));
+        final EntandoPlugin newPlugin = new EntandoPluginBuilder(this.entandoPlugin).editSpec().withIngressHostName("shared.com").endSpec()
+                .build();
+        final EntandoApp newApp = new EntandoAppBuilder(this.entandoApp).editSpec().withIngressHostName("shared.com").endSpec().build();
+        client.entandoResources().createOrPatchEntandoResource(newApp);
+        client.entandoResources().createOrPatchEntandoResource(newPlugin);
+        lenient().when(client.services()
+                .createOrReplaceService(eq(newPlugin), argThat(matchesName(MY_PLUGIN_SERVER_SERVICE))))
+                .then(answerWithClusterIp(CLUSTER_IP));
+        //And I have an app and a plugin  that share a hostname
+        new IngressingDeployCommand<SampleExposedDeploymentResult>(new FakeDeployable<>(newApp)).execute(client, keycloakClient);
+        new IngressingDeployCommand<SampleExposedDeploymentResult>(new FakeDeployable<>(newPlugin)).execute(client, keycloakClient);
+
+        //When I link the plugin to the app
+        EntandoAppPluginLink newEntandoAppPluginLink = new EntandoAppPluginLinkBuilder()
+                .withNewMetadata()
+                .withNamespace(MY_APP_NAMESPACE)
+                .withName(MY_LINK)
+                .endMetadata()
+                .withNewSpec()
+                .withEntandoApp(MY_APP_NAMESPACE, MY_APP)
+                .withEntandoPlugin(MY_PLUGIN_NAMESPACE, MY_PLUGIN)
+                .endSpec()
+                .build();
+        client.entandoResources().createOrPatchEntandoResource(newEntandoAppPluginLink);
+        linkController.onStartup(new StartupEvent());
+
+        //Then K8S was instructed to create an Ingress for the Plugin JEE Server
+        NamedArgumentCaptor<Ingress> pluginIngressCaptor = forResourceNamed(Ingress.class,
+                MY_PLUGIN + "-" + NameUtils.DEFAULT_INGRESS_SUFFIX);
+        verify(client.ingresses()).createIngress(eq(newPlugin), pluginIngressCaptor.capture());
+        Ingress pluginIngress = pluginIngressCaptor.getValue();
+        NamedArgumentCaptor<Ingress> appIngressCaptor = forResourceNamed(Ingress.class,
+                MY_APP + "-" + NameUtils.DEFAULT_INGRESS_SUFFIX);
+        verify(client.ingresses()).createIngress(eq(newApp), appIngressCaptor.capture());
+        Ingress appIngress = appIngressCaptor.getValue();
+        assertThat(pluginIngress.getSpec().getRules().get(0).getHttp().getPaths().size(), is(1));
+        //And no additional paths were added to the app's ingress
+        assertThat(appIngress.getSpec().getRules().get(0).getHttp().getPaths().size(), is(1));
+        assertThat(appIngress.getSpec().getRules().get(0).getHost(), is(pluginIngress.getSpec().getRules().get(0).getHost()));
+
     }
 
     private ArgumentMatcher<Permission> matches(Permission permission) {
