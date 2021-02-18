@@ -17,16 +17,16 @@
 package org.entando.kubernetes.controller.link.interprocesstests;
 
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
-import org.entando.kubernetes.controller.integrationtest.support.IntegrationTestHelperBase;
 import org.entando.kubernetes.model.link.DoneableEntandoAppPluginLink;
 import org.entando.kubernetes.model.link.EntandoAppPluginLink;
 import org.entando.kubernetes.model.link.EntandoAppPluginLinkList;
 import org.entando.kubernetes.model.link.EntandoAppPluginLinkOperationFactory;
+import org.entando.kubernetes.test.e2etest.helpers.E2ETestHelperBase;
 
-public class EntandoAppPluginLinkIntegrationTestHelper
-        extends IntegrationTestHelperBase<EntandoAppPluginLink, EntandoAppPluginLinkList, DoneableEntandoAppPluginLink> {
+public class EntandoAppPluginLinkE2ETestHelper
+        extends E2ETestHelperBase<EntandoAppPluginLink, EntandoAppPluginLinkList, DoneableEntandoAppPluginLink> {
 
-    public EntandoAppPluginLinkIntegrationTestHelper(DefaultKubernetesClient client) {
+    public EntandoAppPluginLinkE2ETestHelper(DefaultKubernetesClient client) {
         super(client, EntandoAppPluginLinkOperationFactory::produceAllEntandoAppPluginLinks);
     }
 

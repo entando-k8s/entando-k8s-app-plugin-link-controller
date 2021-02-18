@@ -23,13 +23,9 @@ import io.fabric8.kubernetes.api.model.extensions.HTTPIngressPath;
 import io.fabric8.kubernetes.api.model.extensions.Ingress;
 import java.util.Collections;
 import java.util.List;
-import org.entando.kubernetes.controller.integrationtest.support.EntandoAppIntegrationTestHelper;
-import org.entando.kubernetes.controller.integrationtest.support.EntandoOperatorTestConfig;
-import org.entando.kubernetes.controller.integrationtest.support.EntandoOperatorTestConfig.TestTarget;
-import org.entando.kubernetes.controller.integrationtest.support.EntandoPluginIntegrationTestHelper;
-import org.entando.kubernetes.controller.integrationtest.support.FluentIntegrationTesting;
-import org.entando.kubernetes.controller.integrationtest.support.K8SIntegrationTestHelper;
-import org.entando.kubernetes.controller.integrationtest.support.KeycloakIntegrationTestHelper;
+import org.entando.kubernetes.client.EntandoOperatorTestConfig;
+import org.entando.kubernetes.client.EntandoOperatorTestConfig.TestTarget;
+import org.entando.kubernetes.client.integrationtesthelpers.FluentIntegrationTesting;
 import org.entando.kubernetes.controller.link.EntandoAppPluginLinkController;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.support.client.InfrastructureConfig;
@@ -47,6 +43,10 @@ import org.entando.kubernetes.model.link.EntandoAppPluginLinkBuilder;
 import org.entando.kubernetes.model.plugin.EntandoPlugin;
 import org.entando.kubernetes.model.plugin.EntandoPluginBuilder;
 import org.entando.kubernetes.model.plugin.PluginSecurityLevel;
+import org.entando.kubernetes.test.e2etest.helpers.EntandoAppE2ETestHelper;
+import org.entando.kubernetes.test.e2etest.helpers.EntandoPluginE2ETestHelper;
+import org.entando.kubernetes.test.e2etest.helpers.K8SIntegrationTestHelper;
+import org.entando.kubernetes.test.e2etest.helpers.KeycloakE2ETestHelper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -63,7 +63,7 @@ class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
     public static final String TEST_LINK = "test-link";
     private String entandoAppHostName;
     private final K8SIntegrationTestHelper helper = new K8SIntegrationTestHelper();
-    private final EntandoAppPluginLinkIntegrationTestHelper appPluginLinks = new EntandoAppPluginLinkIntegrationTestHelper(
+    private final EntandoAppPluginLinkE2ETestHelper appPluginLinks = new EntandoAppPluginLinkE2ETestHelper(
             helper.getClient());
 
     @BeforeEach
@@ -71,13 +71,13 @@ class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
         System.setProperty(EntandoOperatorConfigProperty.ENTANDO_POD_COMPLETION_TIMEOUT_SECONDS.getJvmSystemProperty(), "1200");
         System.setProperty(EntandoOperatorConfigProperty.ENTANDO_POD_READINESS_TIMEOUT_SECONDS.getJvmSystemProperty(), "1200");
         this.helper.keycloak().prepareDefaultKeycloakSecretAndConfigMap();
-        this.helper.keycloak().deleteRealm(KeycloakIntegrationTestHelper.KEYCLOAK_REALM);
-        this.entandoAppHostName = EntandoAppIntegrationTestHelper.TEST_APP_NAME + "." + helper.getDomainSuffix();
+        this.helper.keycloak().deleteRealm(KeycloakE2ETestHelper.KEYCLOAK_REALM);
+        this.entandoAppHostName = EntandoAppE2ETestHelper.TEST_APP_NAME + "." + helper.getDomainSuffix();
         this.helper.setTextFixture(
-                deleteAll(EntandoKeycloakServer.class).fromNamespace(KeycloakIntegrationTestHelper.KEYCLOAK_NAMESPACE)
-                        .deleteAll(EntandoApp.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
-                        .deleteAll(EntandoPlugin.class).fromNamespace(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAMESPACE)
-                        .deleteAll(EntandoAppPluginLink.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE));
+                deleteAll(EntandoKeycloakServer.class).fromNamespace(KeycloakE2ETestHelper.KEYCLOAK_NAMESPACE)
+                        .deleteAll(EntandoApp.class).fromNamespace(EntandoAppE2ETestHelper.TEST_NAMESPACE)
+                        .deleteAll(EntandoPlugin.class).fromNamespace(EntandoPluginE2ETestHelper.TEST_PLUGIN_NAMESPACE)
+                        .deleteAll(EntandoAppPluginLink.class).fromNamespace(EntandoAppE2ETestHelper.TEST_NAMESPACE));
         ensureApp();
         ensurePlugin();
         registerListeners();
@@ -85,27 +85,27 @@ class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
 
     private void registerListeners() {
         if (EntandoOperatorTestConfig.getTestTarget() == TestTarget.K8S) {
-            appPluginLinks().listenAndRespondWithImageVersionUnderTest(EntandoAppIntegrationTestHelper.TEST_NAMESPACE);
+            appPluginLinks().listenAndRespondWithImageVersionUnderTest(EntandoAppE2ETestHelper.TEST_NAMESPACE);
         } else {
             EntandoAppPluginLinkController controller = new EntandoAppPluginLinkController(helper.getClient(), false);
-            appPluginLinks().listenAndRespondWithStartupEvent(EntandoAppIntegrationTestHelper.TEST_NAMESPACE, controller::onStartup);
+            appPluginLinks().listenAndRespondWithStartupEvent(EntandoAppE2ETestHelper.TEST_NAMESPACE, controller::onStartup);
         }
     }
 
-    public EntandoAppPluginLinkIntegrationTestHelper appPluginLinks() {
+    public EntandoAppPluginLinkE2ETestHelper appPluginLinks() {
         return this.appPluginLinks;
     }
 
     private void ensureApp() {
         EntandoApp existingApp = helper.entandoApps().getOperations()
-                .inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
-                .withName(EntandoAppIntegrationTestHelper.TEST_APP_NAME).get();
+                .inNamespace(EntandoAppE2ETestHelper.TEST_NAMESPACE)
+                .withName(EntandoAppE2ETestHelper.TEST_APP_NAME).get();
         if (existingApp == null || existingApp.getStatus().getEntandoDeploymentPhase() != EntandoDeploymentPhase.SUCCESSFUL) {
-            helper.setTextFixture(deleteAll(EntandoApp.class).fromNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE));
+            helper.setTextFixture(deleteAll(EntandoApp.class).fromNamespace(EntandoAppE2ETestHelper.TEST_NAMESPACE));
             EntandoApp entandoApp = new EntandoAppBuilder().withNewSpec().withStandardServerImage(JeeServer.WILDFLY)
                     .withDbms(DbmsVendor.EMBEDDED)
                     .withNewKeycloakToUse()
-                    .withRealm(KeycloakIntegrationTestHelper.KEYCLOAK_REALM)
+                    .withRealm(KeycloakE2ETestHelper.KEYCLOAK_REALM)
                     .endKeycloakToUse()
                     .withIngressHostName(entandoAppHostName)
                     .withReplicas(1)
@@ -113,34 +113,34 @@ class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
                     .endSpec()
                     .build();
             entandoApp.setMetadata(new ObjectMeta());
-            entandoApp.getMetadata().setName(EntandoAppIntegrationTestHelper.TEST_APP_NAME);
+            entandoApp.getMetadata().setName(EntandoAppE2ETestHelper.TEST_APP_NAME);
             this.helper.keycloak()
-                    .deleteKeycloakClients(entandoApp, "entando-web", EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-de",
-                            EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-" + "server");
+                    .deleteKeycloakClients(entandoApp, "entando-web", EntandoAppE2ETestHelper.TEST_APP_NAME + "-de",
+                            EntandoAppE2ETestHelper.TEST_APP_NAME + "-" + "server");
             this.ensureInfrastructureConnectionConfig();
             String k8sSvcClientId = CLUSTER_INFRASTRUCTURE_NAME + "-k8s-svc";
             this.helper.keycloak()
                     .ensureKeycloakClient(entandoApp.getSpec(), k8sSvcClientId, Collections.singletonList(KubeUtils.ENTANDO_APP_ROLE));
-            helper.entandoApps().listenAndRespondWithLatestImage(EntandoAppIntegrationTestHelper.TEST_NAMESPACE);
+            helper.entandoApps().listenAndRespondWithLatestImage(EntandoAppE2ETestHelper.TEST_NAMESPACE);
             this.helper.entandoApps().createAndWaitForApp(entandoApp, 30, false);
         }
     }
 
     private void ensurePlugin() {
         EntandoPlugin existingPlugin = helper.entandoPlugins().getOperations()
-                .inNamespace(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAMESPACE)
-                .withName(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAME).get();
+                .inNamespace(EntandoPluginE2ETestHelper.TEST_PLUGIN_NAMESPACE)
+                .withName(EntandoPluginE2ETestHelper.TEST_PLUGIN_NAME).get();
         if (existingPlugin == null || existingPlugin.getStatus().getEntandoDeploymentPhase() != EntandoDeploymentPhase.SUCCESSFUL) {
             String entandoPluginHostName =
-                    EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAME + "." + helper.getDomainSuffix();
-            helper.setTextFixture(deleteAll(EntandoPlugin.class).fromNamespace(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAMESPACE));
+                    EntandoPluginE2ETestHelper.TEST_PLUGIN_NAME + "." + helper.getDomainSuffix();
+            helper.setTextFixture(deleteAll(EntandoPlugin.class).fromNamespace(EntandoPluginE2ETestHelper.TEST_PLUGIN_NAMESPACE));
             EntandoPlugin entandoPlugin = new EntandoPluginBuilder().withNewMetadata()
-                    .withNamespace(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAMESPACE)
-                    .withName(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAME).endMetadata()
+                    .withNamespace(EntandoPluginE2ETestHelper.TEST_PLUGIN_NAMESPACE)
+                    .withName(EntandoPluginE2ETestHelper.TEST_PLUGIN_NAME).endMetadata()
                     .withNewSpec()
                     .withDbms(DbmsVendor.EMBEDDED)
                     .withNewKeycloakToUse()
-                    .withRealm(KeycloakIntegrationTestHelper.KEYCLOAK_REALM)
+                    .withRealm(KeycloakE2ETestHelper.KEYCLOAK_REALM)
                     .endKeycloakToUse()
                     .withImage("entando/entando-avatar-plugin")
                     .withReplicas(1)
@@ -152,7 +152,7 @@ class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
             String name = entandoPlugin.getMetadata().getName();
             this.helper.keycloak()
                     .deleteKeycloakClients(entandoPlugin, name + "-confsvc", name + "-" + "server", name + "-sidecar");
-            this.helper.entandoPlugins().listenAndRespondWithLatestImage(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAMESPACE);
+            this.helper.entandoPlugins().listenAndRespondWithLatestImage(EntandoPluginE2ETestHelper.TEST_PLUGIN_NAMESPACE);
             this.helper.entandoPlugins().createAndWaitForPlugin(entandoPlugin, false);
         }
     }
@@ -165,28 +165,28 @@ class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
     @Test
     void verifyIngressPathCreation() {
         appPluginLinks().getOperations().create(new EntandoAppPluginLinkBuilder()
-                .withNewMetadata().withNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE).withName(TEST_LINK)
+                .withNewMetadata().withNamespace(EntandoAppE2ETestHelper.TEST_NAMESPACE).withName(TEST_LINK)
                 .endMetadata()
                 .withNewSpec()
-                .withEntandoApp(EntandoAppIntegrationTestHelper.TEST_NAMESPACE, EntandoAppIntegrationTestHelper.TEST_APP_NAME)
-                .withEntandoPlugin(EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAMESPACE,
-                        EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAME)
+                .withEntandoApp(EntandoAppE2ETestHelper.TEST_NAMESPACE, EntandoAppE2ETestHelper.TEST_APP_NAME)
+                .withEntandoPlugin(EntandoPluginE2ETestHelper.TEST_PLUGIN_NAMESPACE,
+                        EntandoPluginE2ETestHelper.TEST_PLUGIN_NAME)
                 .endSpec()
                 .build());
         //TODO test if it is available on the right path
         await().atMost(60, SECONDS).until(() -> appPluginLinks().getOperations()
-                .inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
+                .inNamespace(EntandoAppE2ETestHelper.TEST_NAMESPACE)
                 .withName(TEST_LINK).get().getStatus().getEntandoDeploymentPhase() == EntandoDeploymentPhase.SUCCESSFUL);
         //Retrieve k8s-operator-token
         List<RoleRepresentation> roles = helper.keycloak()
-                .retrieveServiceAccountRoles(KeycloakIntegrationTestHelper.KEYCLOAK_REALM,
-                        EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-" + NameUtils.DEFAULT_SERVER_QUALIFIER,
-                        EntandoPluginIntegrationTestHelper.TEST_PLUGIN_NAME + "-" + NameUtils.DEFAULT_SERVER_QUALIFIER);
+                .retrieveServiceAccountRoles(KeycloakE2ETestHelper.KEYCLOAK_REALM,
+                        EntandoAppE2ETestHelper.TEST_APP_NAME + "-" + NameUtils.DEFAULT_SERVER_QUALIFIER,
+                        EntandoPluginE2ETestHelper.TEST_PLUGIN_NAME + "-" + NameUtils.DEFAULT_SERVER_QUALIFIER);
         assertTrue(roles.stream().anyMatch(roleRepresentation -> roleRepresentation.getName().equals(KubeUtils.ENTANDO_APP_ROLE)));
 
         Ingress appIngress = helper.getClient().extensions().ingresses()
-                .inNamespace(EntandoAppIntegrationTestHelper.TEST_NAMESPACE)
-                .withName(EntandoAppIntegrationTestHelper.TEST_APP_NAME + "-ingress")
+                .inNamespace(EntandoAppE2ETestHelper.TEST_NAMESPACE)
+                .withName(EntandoAppE2ETestHelper.TEST_APP_NAME + "-ingress")
                 .get();
 
         List<HTTPIngressPath> entandoAppIngressPaths = appIngress.getSpec().getRules().get(0).getHttp().getPaths();
@@ -195,7 +195,7 @@ class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
 
     //TODO get rid of this once we deploy K8S with the operator
     public void ensureInfrastructureConnectionConfig() {
-        helper.entandoPlugins().loadDefaultOperatorConfigMap()
+        helper.entandoPlugins().loadDefaultCapabilitiesConfigMap()
                 .addToData(InfrastructureConfig.DEFAULT_CLUSTER_INFRASTRUCTURE_NAMESPACE_KEY, CLUSTER_INFRASTRUCTURE_NAMESPACE)
                 .addToData(InfrastructureConfig.DEFAULT_CLUSTER_INFRASTRUCTURE_NAME_KEY, CLUSTER_INFRASTRUCTURE_NAME)
                 .done();
