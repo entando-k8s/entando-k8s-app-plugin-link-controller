@@ -29,8 +29,10 @@ import org.entando.kubernetes.client.integrationtesthelpers.FluentIntegrationTes
 import org.entando.kubernetes.controller.link.EntandoAppPluginLinkController;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.support.client.InfrastructureConfig;
+import org.entando.kubernetes.controller.support.common.EntandoOperatorConfig;
 import org.entando.kubernetes.controller.support.common.EntandoOperatorConfigProperty;
 import org.entando.kubernetes.controller.support.common.KubeUtils;
+import org.entando.kubernetes.controller.support.common.TlsHelper;
 import org.entando.kubernetes.model.DbmsVendor;
 import org.entando.kubernetes.model.EntandoDeploymentPhase;
 import org.entando.kubernetes.model.JeeServer;
@@ -65,6 +67,11 @@ class LinkEntandoPluginToAppIT implements FluentIntegrationTesting {
     private final K8SIntegrationTestHelper helper = new K8SIntegrationTestHelper();
     private final EntandoAppPluginLinkE2ETestHelper appPluginLinks = new EntandoAppPluginLinkE2ETestHelper(
             helper.getClient());
+
+    LinkEntandoPluginToAppIT() {
+        EntandoOperatorConfig.getCertificateAuthoritySecretName()
+                .ifPresent(s -> TlsHelper.trustCertificateAuthoritiesIn(helper.getClient().secrets().withName(s).get()));
+    }
 
     @BeforeEach
     public void cleanup() {
