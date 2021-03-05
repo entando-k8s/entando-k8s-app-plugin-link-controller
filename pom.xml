@@ -24,7 +24,7 @@
         <version>6.3.14</version>
         <relativePath/>
     </parent>
-    <version>6.3.0-SNAPSHOT</version>
+    <version>6.3.3</version>
     <artifactId>entando-k8s-app-plugin-link-controller</artifactId>
     <name>Entando K8S Controller for Entando App Plugin Links</name>
     <description>Entando's K8S Controller for Entando App Plugin Links</description>
