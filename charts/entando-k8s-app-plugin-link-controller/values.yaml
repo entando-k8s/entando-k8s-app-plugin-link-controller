@@ -4,5 +4,5 @@
 replicaCount: 1
 image:
   repository: docker.io/entando/entando-k8s-app-plugin-link-controller
-  tag: 6.1.2
+  tag: 6.3.5
   pullPolicy: IfNotPresent
