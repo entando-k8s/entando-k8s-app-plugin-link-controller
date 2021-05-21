@@ -27,9 +27,8 @@ import org.entando.kubernetes.controller.support.client.SimpleKeycloakClient;
 import org.entando.kubernetes.controller.support.common.KubeUtils;
 import org.entando.kubernetes.controller.support.creators.IngressPathCreator;
 import org.entando.kubernetes.controller.support.creators.ServiceCreator;
-import org.entando.kubernetes.model.AbstractServerStatus;
-import org.entando.kubernetes.model.WebServerStatus;
 import org.entando.kubernetes.model.app.EntandoApp;
+import org.entando.kubernetes.model.common.ExposedServerStatus;
 import org.entando.kubernetes.model.link.EntandoAppPluginLink;
 import org.entando.kubernetes.model.plugin.Permission;
 
@@ -40,7 +39,7 @@ public class LinkAppToPluginCommand {
     private final IngressPathCreator ingressCreator;
     private final EntandoLinkedPluginIngressing entandoLinkedPluginIngressing;
     private final ServiceCreator serviceCreator;
-    private final WebServerStatus status = new WebServerStatus("link");
+    private final ExposedServerStatus status = new ExposedServerStatus("link");
 
     //TODO fix ServiceCreator not to assume an EntandoDeploymentSpec
     public LinkAppToPluginCommand(EntandoAppPluginLink entandoAppPluginLink, EntandoLinkedPluginIngressing entandoLinkedPluginIngressing) {
@@ -53,15 +52,15 @@ public class LinkAppToPluginCommand {
 
     public void execute(SimpleK8SClient<?> k8sClient, SimpleKeycloakClient keycloakClient) {
         if (entandoLinkedPluginIngressing.usingSameHostname()) {
-            status.setServiceStatus(entandoLinkedPluginIngressing.getEntandoPluginDeploymentResult().getService().getStatus());
-            status.setIngressStatus(entandoLinkedPluginIngressing.getEntandoPluginDeploymentResult().getIngress().getStatus());
+            status.setServiceName(entandoLinkedPluginIngressing.getEntandoPluginDeploymentResult().getService().getMetadata().getName());
+            status.setIngressName(entandoLinkedPluginIngressing.getEntandoPluginDeploymentResult().getIngress().getMetadata().getName());
             k8sClient.entandoResources().updateStatus(entandoAppPluginLink, status);
         } else {
             Service service = prepareReachableService(k8sClient.services());
-            status.setServiceStatus(service.getStatus());
+            status.setServiceName(service.getMetadata().getName());
             k8sClient.entandoResources().updateStatus(entandoAppPluginLink, status);
             Ingress ingress = addMissingIngressPaths(k8sClient, service);
-            status.setIngressStatus(ingress.getStatus());
+            status.setIngressName(ingress.getMetadata().getName());
             k8sClient.entandoResources().updateStatus(entandoAppPluginLink, status);
         }
         grantAppAccessToPlugin(k8sClient, keycloakClient);
@@ -91,7 +90,7 @@ public class LinkAppToPluginCommand {
     }
 
     private Ingress addMissingIngressPaths(SimpleK8SClient<?> k8sClient, Service service) {
-        return ingressCreator.addMissingHttpPaths(k8sClient.ingresses(), entandoLinkedPluginIngressing,
+        return ingressCreator.addMissingHttpPaths(k8sClient.ingresses(), entandoLinkedPluginIngressing.getIngressingContainers(),
                 entandoLinkedPluginIngressing.getEntandoAppDeploymentResult().getIngress(), service);
     }
 
@@ -111,7 +110,7 @@ public class LinkAppToPluginCommand {
         return this.entandoLinkedPluginIngressing.getEntandoPluginDeploymentResult().getService().getMetadata().getNamespace();
     }
 
-    public AbstractServerStatus getStatus() {
+    public ExposedServerStatus getStatus() {
         return status;
     }
 }

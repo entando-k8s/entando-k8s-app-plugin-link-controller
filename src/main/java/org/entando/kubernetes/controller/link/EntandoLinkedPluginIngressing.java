@@ -19,14 +19,14 @@ package org.entando.kubernetes.controller.link;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import org.entando.kubernetes.controller.spi.common.MayRequireDelegateService;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.spi.container.IngressingPathOnPort;
-import org.entando.kubernetes.controller.spi.deployable.Ingressing;
 import org.entando.kubernetes.controller.spi.result.ExposedService;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.plugin.EntandoPlugin;
 
-public class EntandoLinkedPluginIngressing implements Ingressing<IngressingPathOnPort> {
+public class EntandoLinkedPluginIngressing implements MayRequireDelegateService {
 
     private final EntandoApp entandoApp;
     private final List<IngressingPathOnPort> ingressingPaths;
@@ -63,7 +63,6 @@ public class EntandoLinkedPluginIngressing implements Ingressing<IngressingPathO
         );
     }
 
-    @Override
     public List<IngressingPathOnPort> getIngressingContainers() {
         return ingressingPaths;
     }
@@ -79,8 +78,8 @@ public class EntandoLinkedPluginIngressing implements Ingressing<IngressingPathO
     }
 
     @Override
-    public String getNameQualifier() {
-        return NameUtils.DEFAULT_SERVER_QUALIFIER; //Same as EntandoApp 'server'
+    public Optional<String> getQualifier() {
+        return Optional.empty();
     }
 
     public EntandoApp getEntandoApp() {

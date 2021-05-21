@@ -17,49 +17,47 @@
 package org.entando.kubernetes.controller.link;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.quarkus.runtime.StartupEvent;
-import javax.enterprise.event.Observes;
+import java.util.Collections;
 import javax.inject.Inject;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
 import org.entando.kubernetes.controller.spi.result.ExposedService;
 import org.entando.kubernetes.controller.support.client.SimpleK8SClient;
 import org.entando.kubernetes.controller.support.client.SimpleKeycloakClient;
+import org.entando.kubernetes.controller.support.client.impl.DefaultKeycloakClient;
+import org.entando.kubernetes.controller.support.client.impl.DefaultSimpleK8SClient;
 import org.entando.kubernetes.controller.support.common.KubeUtils;
-import org.entando.kubernetes.controller.support.controller.AbstractDbAwareController;
 import org.entando.kubernetes.model.app.EntandoApp;
 import org.entando.kubernetes.model.link.EntandoAppPluginLink;
 import org.entando.kubernetes.model.link.EntandoAppPluginLinkSpec;
 import org.entando.kubernetes.model.plugin.EntandoPlugin;
 
-public class EntandoAppPluginLinkController extends AbstractDbAwareController<EntandoAppPluginLinkSpec, EntandoAppPluginLink> {
+public class EntandoAppPluginLinkController implements Runnable {
+
+    private final SimpleK8SClient<?> k8sClient;
+    private final SimpleKeycloakClient keycloakClient;
 
     @Inject
     public EntandoAppPluginLinkController(KubernetesClient kubernetesClient) {
-        super(kubernetesClient);
+        this(new DefaultSimpleK8SClient(kubernetesClient), new DefaultKeycloakClient());
     }
 
-    public EntandoAppPluginLinkController(SimpleK8SClient<?> k8sClient,
-            SimpleKeycloakClient keycloakClient) {
-        super(k8sClient, keycloakClient);
+    public EntandoAppPluginLinkController(SimpleK8SClient<?> k8sClient, SimpleKeycloakClient keycloakClient) {
+        this.k8sClient = k8sClient;
+        this.keycloakClient = keycloakClient;
     }
 
-    public EntandoAppPluginLinkController(KubernetesClient kubernetesClient, boolean exitAutomatically) {
-        super(kubernetesClient, exitAutomatically);
-    }
 
-    public void onStartup(@Observes StartupEvent event) {
-        processCommand();
-    }
 
     @Override
-    protected void synchronizeDeploymentState(EntandoAppPluginLink newEntandoAppPluginLink) {
+    public void run() {
+        EntandoAppPluginLink newEntandoAppPluginLink= (EntandoAppPluginLink) k8sClient.entandoResources().resolveCustomResourceToProcess(Collections.singletonList(EntandoAppPluginLink.class));
         EntandoLinkedPluginIngressing entandoLinkedPluginIngressing = prepareEntandoPluginIngressing(newEntandoAppPluginLink);
         LinkAppToPluginCommand linkAppToPluginCommand = new LinkAppToPluginCommand(newEntandoAppPluginLink,
                 entandoLinkedPluginIngressing);
         linkAppToPluginCommand.execute(k8sClient, keycloakClient);
         k8sClient.entandoResources().updateStatus(newEntandoAppPluginLink, linkAppToPluginCommand.getStatus());
-    }
 
+    }
     private EntandoLinkedPluginIngressing prepareEntandoPluginIngressing(EntandoAppPluginLink newEntandoAppPluginLink) {
         EntandoAppPluginLinkSpec spec = newEntandoAppPluginLink.getSpec();
         EntandoApp entandoApp = k8sClient.entandoResources()
@@ -74,5 +72,4 @@ public class EntandoAppPluginLinkController extends AbstractDbAwareController<En
         ExposedService entandoPluginDeploymentResult = k8sClient.entandoResources().loadExposedService(entandoPlugin);
         return new EntandoLinkedPluginIngressing(entandoApp, entandoPlugin, entandoAppDeploymentResult, entandoPluginDeploymentResult);
     }
-
 }
