@@ -1,4 +1,5 @@
 buildPack: entando-maven-docker
+buildPackGitURL: https://github.com/entando-k8s/jenkins-x-kubernetes.git
 pipelineConfig:
   env:
     - name: PIPELINE_CODE
@@ -14,6 +15,10 @@ pipelineConfig:
         secretKeyRef:
           name: entando-jx-common-secret
           key: executable.type
+    - name: ENTANDO_CONTROLLER_POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
     - name: _JAVA_OPTIONS
       value: -XX:+UnlockExperimentalVMOptions -Dsun.zip.disableMemoryMapping=true -XX:+UseParallelGC -XX:MinHeapFreeRatio=5 -XX:MaxHeapFreeRatio=10 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Xms1000m -Xmx12000m
     - name: RELATED_IMAGE_ENTANDO_DE_APP_WILDFLY
