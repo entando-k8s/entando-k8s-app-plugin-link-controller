@@ -55,17 +55,21 @@ public class EntandoAppPluginLinkController implements Runnable {
                     appPluginLink.getSpec().getEntandoAppNamespace().orElse(appPluginLink.getMetadata().getNamespace()),
                     appPluginLink.getSpec().getEntandoAppName());
             k8sClient.waitForCompletion(entandoApp, EntandoOperatorSpiConfig.getPodCompletionTimeoutSeconds() * 2).getStatus()
-                    .findFailedServerStatus().flatMap(ServerStatus::getEntandoControllerFailure).ifPresent(s -> {
-                throw toException(s, entandoApp);
-            });
+                    .findFailedServerStatus()
+                    .flatMap(ServerStatus::getEntandoControllerFailure)
+                    .ifPresent(s -> {
+                        throw toException(s, entandoApp);
+                    });
             final SerializedEntandoResource entandoPlugin = k8sClient.loadCustomResource(appPluginLink.getApiVersion(),
                     "EntandoPlugin",
                     appPluginLink.getSpec().getEntandoPluginNamespace().orElse(appPluginLink.getMetadata().getNamespace()),
                     appPluginLink.getSpec().getEntandoPluginName());
             k8sClient.waitForCompletion(entandoPlugin, EntandoOperatorSpiConfig.getPodCompletionTimeoutSeconds() * 2).getStatus()
-                    .findFailedServerStatus().flatMap(ServerStatus::getEntandoControllerFailure).ifPresent(s -> {
-                throw toException(s, entandoPlugin);
-            });
+                    .findFailedServerStatus()
+                    .flatMap(ServerStatus::getEntandoControllerFailure)
+                    .ifPresent(s -> {
+                        throw toException(s, entandoPlugin);
+                    });
             linkable.setTargetPathOnSourceIngress(
                     entandoPlugin.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).orElseThrow(IllegalStateException::new)
                             .getWebContexts().get(NameUtils.DEFAULT_SERVER_QUALIFIER));
