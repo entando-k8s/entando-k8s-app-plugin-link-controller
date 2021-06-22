@@ -49,7 +49,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @Feature("As a deployer, I would like to link an EntandoApp to an EntandoPlugin so that I may access it from the app")
 @Issue("ENG-2284")
 @SourceLink("LinkControllerTest.java")
-public class LinkControllerTest extends LinkControllerTestBase {
+class LinkControllerTest extends LinkControllerTestBase {
 
     public static final String MY_CM_SSO_CLIENT_ID = "my-cm-sso-client-id";
     public static final String MY_APP_SSO_CLIENT_ID = "my-app-sso-client-id";
