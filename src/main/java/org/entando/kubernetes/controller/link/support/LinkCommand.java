@@ -104,7 +104,7 @@ public class LinkCommand {
 
     private Ingress addMissingIngressPaths(SimpleK8SClient<?> k8sClient, Service service) {
         Ingress ingress = getSourceIngress(k8sClient);
-        return ingressCreator.addMissingHttpPaths(k8sClient.ingresses(), linkInfo.getPathsOnPorts(), ingress, service);
+        return ingressCreator.addMissingHttpPaths(k8sClient.ingresses(), linkInfo.getPathsOnPorts(), ingress, service, status);
     }
 
     private Ingress getSourceIngress(SimpleK8SClient<?> k8sClient) {

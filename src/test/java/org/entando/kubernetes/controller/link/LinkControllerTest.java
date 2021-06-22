@@ -31,6 +31,7 @@ import org.entando.kubernetes.model.app.EntandoAppBuilder;
 import org.entando.kubernetes.model.capability.ProvidedCapabilityBuilder;
 import org.entando.kubernetes.model.capability.StandardCapability;
 import org.entando.kubernetes.model.common.DbmsVendor;
+import org.entando.kubernetes.model.common.EntandoDeploymentPhase;
 import org.entando.kubernetes.model.common.Permission;
 import org.entando.kubernetes.model.common.ServerStatus;
 import org.entando.kubernetes.model.link.EntandoAppPluginLinkBuilder;
@@ -139,19 +140,29 @@ public class LinkControllerTest extends LinkControllerTestBase {
     }
 
     private void processLink() {
-        this.link = getClient().entandoResources()
-                .createOrPatchEntandoResource(new EntandoAppPluginLinkBuilder()
-                        .withNewMetadata()
-                        .withNamespace(MY_NAMESPACE)
-                        .withName("my-link")
-                        .endMetadata()
-                        .withNewSpec()
-                        .withEntandoApp(MY_NAMESPACE, MY_APP)
-                        .withEntandoPlugin(entandoPlugin.getMetadata().getNamespace(), entandoPlugin.getMetadata().getName())
-                        .endSpec()
-                        .build());
-        runControllerAgainstCustomResource(link);
-        attachKubernetesResource("EntandoAppPluginLink", this.link);
+        step("I schedule the completion of the EntandoApp custom resource", () ->
+                getScheduler().submit(() -> {
+                    this.entandoApp = getClient().entandoResources().updatePhase(this.entandoApp, EntandoDeploymentPhase.SUCCESSFUL);
+                }));
+        step("I schedule the completion of the EntandoPlugin custom resource", () ->
+                getScheduler().submit(() -> {
+                    this.entandoPlugin = getClient().entandoResources().updatePhase(this.entandoPlugin, EntandoDeploymentPhase.SUCCESSFUL);
+                }));
+        step("And I create the EntandoAppPluginLink custom resource", () -> {
+            this.link = getClient().entandoResources()
+                    .createOrPatchEntandoResource(new EntandoAppPluginLinkBuilder()
+                            .withNewMetadata()
+                            .withNamespace(MY_NAMESPACE)
+                            .withName("my-link")
+                            .endMetadata()
+                            .withNewSpec()
+                            .withEntandoApp(MY_NAMESPACE, MY_APP)
+                            .withEntandoPlugin(entandoPlugin.getMetadata().getNamespace(), entandoPlugin.getMetadata().getName())
+                            .endSpec()
+                            .build());
+            runControllerAgainstCustomResource(link);
+            attachKubernetesResource("EntandoAppPluginLink", this.link);
+        });
     }
 
     private void prepareEntandoApp() {
