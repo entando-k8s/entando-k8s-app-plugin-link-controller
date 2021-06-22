@@ -2,7 +2,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: entando-operator
-  namespace: {{ .Release.Namespace }}
 rules:
   - apiGroups:
       - entando.org
@@ -45,20 +44,12 @@ rules:
     verbs:
       - get
   - apiGroups:
-      - extensions
+      - "extensions"
+      - "networking.k8s.io"
     resources:
       - ingresses
     verbs:
       - "*"
-{{- if .Values.supportOpenshift }}
-  - apiGroups:
-      - route.openshift.io
-    resources:
-      - "routes"
-      - "routes/custom-host"
-    verbs:
-      - "*"
-{{- end }}
   - apiGroups:
       - ""
     resources:
@@ -79,3 +70,10 @@ rules:
     verbs:
       - get
       - create
+  - apiGroups:
+      - route.openshift.io
+    resources:
+      - "routes"
+      - "routes/custom-host"
+    verbs:
+      - "*"

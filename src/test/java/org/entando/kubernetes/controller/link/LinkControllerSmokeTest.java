@@ -68,12 +68,12 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
             .orElse("apps.serv.run");
     private final ExecutorService scheduler = Executors.newFixedThreadPool(4);
     private EntandoAppPluginLink link;
+    final KubernetesClient client = new SupportProducer().getKubernetesClient();
+    final DefaultSimpleK8SClient simpleClient = new DefaultSimpleK8SClient(client);
 
     @Test
     @Description("Should successfully connect to newly deployed Plugin using the Ingress of the EntandoApp")
     void testLink() throws InterruptedException {
-        final KubernetesClient client = new SupportProducer().getKubernetesClient();
-        final DefaultSimpleK8SClient simpleClient = new DefaultSimpleK8SClient(client);
         step("Given I have a clean namespace", () -> {
             TestFixturePreparation.prepareTestFixture(client, deleteAll(EntandoPlugin.class).fromNamespace(MY_NAMESPACE)
                     .deleteAll(EntandoApp.class).fromNamespace(MY_NAMESPACE)
@@ -99,6 +99,10 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
                                     .endSpec()
                                     .build()
                     );
+            //force initialization of CRD/Name map
+            simpleClient.entandoResources()
+                    .loadCustomResource(entandoApp.getApiVersion(), entandoApp.getKind(), entandoApp.getMetadata().getNamespace(),
+                            entandoApp.getMetadata().getName());
             startControllerFor(simpleClient, "entando-k8s-app-controller", this.entandoApp, "0.0.0-SNAPSHOT-PR-32-22");
             attachment("Entando App", objectMapper.writeValueAsString(this.entandoApp));
         });
