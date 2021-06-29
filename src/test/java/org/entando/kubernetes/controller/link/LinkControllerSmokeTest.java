@@ -103,7 +103,7 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
             simpleClient.entandoResources()
                     .loadCustomResource(entandoApp.getApiVersion(), entandoApp.getKind(), entandoApp.getMetadata().getNamespace(),
                             entandoApp.getMetadata().getName());
-            startControllerFor(simpleClient, "entando-k8s-app-controller", this.entandoApp, "0.0.0-SNAPSHOT-PR-32-22");
+            startControllerFor(simpleClient, "entando-k8s-app-controller", this.entandoApp, "0.0.0-SNAPSHOT-PR-32-25");
             attachment("Entando App", objectMapper.writeValueAsString(this.entandoApp));
         });
         step("And I have created an EntandoPlugin custom resource", () -> {
@@ -123,7 +123,7 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
                                     .endSpec()
                                     .build()
                     );
-            startControllerFor(simpleClient, "entando-k8s-plugin-controller", this.entandoPlugin, "0.0.0-SNAPSHOT-PR-27-9");
+            startControllerFor(simpleClient, "entando-k8s-plugin-controller", this.entandoPlugin, "0.0.0-SNAPSHOT-PR-27-10");
             attachment("Entando Plugin", objectMapper.writeValueAsString(this.entandoPlugin));
         });
         step("When I create an EntandoAppPluginLink to link the two custom resources", () -> {
