@@ -37,6 +37,8 @@ public class EntandoAppPluginLinkController implements Runnable {
 
     private final KubernetesClientForControllers k8sClient;
     private final DeploymentLinker linker;
+    private SerializedEntandoResource entandoPlugin;
+    private SerializedEntandoResource entandoApp;
 
     @Inject
     public EntandoAppPluginLinkController(KubernetesClientForControllers k8sClient, DeploymentLinker linker) {
@@ -50,7 +52,7 @@ public class EntandoAppPluginLinkController implements Runnable {
                 .resolveCustomResourceToProcess(Collections.singletonList(EntandoAppPluginLink.class));
         try {
             final AppToPluginLinkable linkable = new AppToPluginLinkable(appPluginLink);
-            final SerializedEntandoResource entandoApp = k8sClient.loadCustomResource(appPluginLink.getApiVersion(),
+            this.entandoApp = k8sClient.loadCustomResource(appPluginLink.getApiVersion(),
                     "EntandoApp",
                     appPluginLink.getSpec().getEntandoAppNamespace().orElse(appPluginLink.getMetadata().getNamespace()),
                     appPluginLink.getSpec().getEntandoAppName());
@@ -60,7 +62,7 @@ public class EntandoAppPluginLinkController implements Runnable {
                     .ifPresent(s -> {
                         throw toException(s, entandoApp);
                     });
-            final SerializedEntandoResource entandoPlugin = k8sClient.loadCustomResource(appPluginLink.getApiVersion(),
+            this.entandoPlugin = k8sClient.loadCustomResource(appPluginLink.getApiVersion(),
                     "EntandoPlugin",
                     appPluginLink.getSpec().getEntandoPluginNamespace().orElse(appPluginLink.getMetadata().getNamespace()),
                     appPluginLink.getSpec().getEntandoPluginName());
