@@ -56,7 +56,8 @@ public class EntandoAppPluginLinkController implements Runnable {
                     "EntandoApp",
                     appPluginLink.getSpec().getEntandoAppNamespace().orElse(appPluginLink.getMetadata().getNamespace()),
                     appPluginLink.getSpec().getEntandoAppName());
-            k8sClient.waitForCompletion(entandoApp, EntandoOperatorSpiConfig.getPodCompletionTimeoutSeconds() * 2).getStatus()
+            this.entandoApp = k8sClient.waitForCompletion(entandoApp, EntandoOperatorSpiConfig.getPodCompletionTimeoutSeconds() * 2);
+            this.entandoApp.getStatus()
                     .findFailedServerStatus()
                     .flatMap(ServerStatus::getEntandoControllerFailure)
                     .ifPresent(s -> {
@@ -66,7 +67,8 @@ public class EntandoAppPluginLinkController implements Runnable {
                     "EntandoPlugin",
                     appPluginLink.getSpec().getEntandoPluginNamespace().orElse(appPluginLink.getMetadata().getNamespace()),
                     appPluginLink.getSpec().getEntandoPluginName());
-            k8sClient.waitForCompletion(entandoPlugin, EntandoOperatorSpiConfig.getPodCompletionTimeoutSeconds() * 2).getStatus()
+            this.entandoPlugin = k8sClient.waitForCompletion(entandoPlugin, EntandoOperatorSpiConfig.getPodCompletionTimeoutSeconds() * 2);
+            this.entandoPlugin.getStatus()
                     .findFailedServerStatus()
                     .flatMap(ServerStatus::getEntandoControllerFailure)
                     .ifPresent(s -> {
