@@ -51,6 +51,7 @@ public class EntandoAppPluginLinkController implements Runnable {
         EntandoAppPluginLink appPluginLink = (EntandoAppPluginLink) k8sClient
                 .resolveCustomResourceToProcess(Collections.singletonList(EntandoAppPluginLink.class));
         try {
+            appPluginLink = this.k8sClient.deploymentStarted(appPluginLink);
             final AppToPluginLinkable linkable = new AppToPluginLinkable(appPluginLink);
             this.entandoApp = k8sClient.loadCustomResource(appPluginLink.getApiVersion(),
                     "EntandoApp",
