@@ -124,7 +124,8 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
             simpleClient.entandoResources()
                     .loadCustomResource(entandoApp.getApiVersion(), entandoApp.getKind(), entandoApp.getMetadata().getNamespace(),
                             entandoApp.getMetadata().getName());
-            startControllerFor(simpleClient, "entando-k8s-app-controller", this.entandoApp, "0.0.0-SNAPSHOT-PR-32-41");
+            //TODO evaluate if this image version should be resolved dynamically from the Docker image config map
+            startControllerFor(simpleClient, "entando-k8s-app-controller", this.entandoApp, "0.0.0-SNAPSHOT-PR-32-53");
             attachment("Entando App", objectMapper.writeValueAsString(this.entandoApp));
         });
         step("And I have created an EntandoPlugin custom resource", () -> {
@@ -144,7 +145,8 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
                                     .endSpec()
                                     .build()
                     );
-            startControllerFor(simpleClient, "entando-k8s-plugin-controller", this.entandoPlugin, "0.0.0-SNAPSHOT-PR-27-16");
+            //TODO evaluate if this image version should be resolved dynamically from the Docker image config map
+            startControllerFor(simpleClient, "entando-k8s-plugin-controller", this.entandoPlugin, "0.0.0-SNAPSHOT-PR-27-23");
             attachment("Entando Plugin", objectMapper.writeValueAsString(this.entandoPlugin));
         });
         step("When I create an EntandoAppPluginLink to link the two custom resources", () -> {
@@ -162,6 +164,7 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
                                     .build()
                     );
             startControllerFor(simpleClient, "entando-k8s-app-plugin-link-controller", this.link,
+                    //NB!! keep in mind the version .0.0-SNAPSHOT-PR1-3 will be overridden in the pipelines
                     EntandoOperatorTestConfig.getVersionOfImageUnderTest().orElse("0.0.0-SNAPSHOT-PR1-3"));
             attachment("Entando App-Plugin Link", objectMapper.writeValueAsString(this.link));
         });
