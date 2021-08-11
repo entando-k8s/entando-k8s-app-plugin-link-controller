@@ -86,7 +86,7 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
         step("And I have a service called 'entando-k8s-service'", () -> {
             //The EntandoApp is in same namespace as the controller at this point
             simpleClient.services().createOrReplaceService(
-                    new TestResource().withNames(MY_NAMESPACE, "ingored"),
+                    new TestResource().withNames(MY_NAMESPACE, "ignored"),
                     new ServiceBuilder()
                             .withNewMetadata()
                             .withNamespace(MY_NAMESPACE)
@@ -125,7 +125,7 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
                     .loadCustomResource(entandoApp.getApiVersion(), entandoApp.getKind(), entandoApp.getMetadata().getNamespace(),
                             entandoApp.getMetadata().getName());
             //TODO evaluate if this image version should be resolved dynamically from the Docker image config map
-            startControllerFor(simpleClient, "entando-k8s-app-controller", this.entandoApp, "0.0.0-SNAPSHOT-PR-32-53");
+            startControllerFor(simpleClient, "entando-k8s-app-controller", this.entandoApp, "6.4.0");
             attachment("Entando App", objectMapper.writeValueAsString(this.entandoApp));
         });
         step("And I have created an EntandoPlugin custom resource", () -> {
@@ -146,7 +146,7 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
                                     .build()
                     );
             //TODO evaluate if this image version should be resolved dynamically from the Docker image config map
-            startControllerFor(simpleClient, "entando-k8s-plugin-controller", this.entandoPlugin, "0.0.0-SNAPSHOT-PR-27-23");
+            startControllerFor(simpleClient, "entando-k8s-plugin-controller", this.entandoPlugin, "6.4.0");
             attachment("Entando Plugin", objectMapper.writeValueAsString(this.entandoPlugin));
         });
         step("When I create an EntandoAppPluginLink to link the two custom resources", () -> {
