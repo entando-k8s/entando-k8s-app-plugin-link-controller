@@ -11,3 +11,4 @@ target/
 classes/
 /src/test/resources/crd/examples/
 /.factorypath
+/allure-results

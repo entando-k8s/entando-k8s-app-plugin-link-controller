@@ -16,63 +16,82 @@
 
 package org.entando.kubernetes.controller.link;
 
-import io.fabric8.kubernetes.client.KubernetesClient;
-import io.quarkus.runtime.StartupEvent;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
-import org.entando.kubernetes.controller.spi.common.NameUtils;
-import org.entando.kubernetes.controller.spi.result.ExposedService;
-import org.entando.kubernetes.controller.support.client.SimpleK8SClient;
-import org.entando.kubernetes.controller.support.client.SimpleKeycloakClient;
-import org.entando.kubernetes.controller.support.common.KubeUtils;
-import org.entando.kubernetes.controller.support.controller.AbstractDbAwareController;
-import org.entando.kubernetes.model.app.EntandoApp;
-import org.entando.kubernetes.model.link.EntandoAppPluginLink;
-import org.entando.kubernetes.model.link.EntandoAppPluginLinkSpec;
-import org.entando.kubernetes.model.plugin.EntandoPlugin;
+import static java.lang.String.format;
 
-public class EntandoAppPluginLinkController extends AbstractDbAwareController<EntandoAppPluginLinkSpec, EntandoAppPluginLink> {
+import java.util.Collections;
+import javax.inject.Inject;
+import org.entando.kubernetes.controller.link.support.DeploymentLinker;
+import org.entando.kubernetes.controller.spi.client.KubernetesClientForControllers;
+import org.entando.kubernetes.controller.spi.client.SerializedEntandoResource;
+import org.entando.kubernetes.controller.spi.common.EntandoControllerException;
+import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfig;
+import org.entando.kubernetes.controller.spi.common.NameUtils;
+import org.entando.kubernetes.model.common.EntandoControllerFailure;
+import org.entando.kubernetes.model.common.ServerStatus;
+import org.entando.kubernetes.model.link.EntandoAppPluginLink;
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+
+@Command
+public class EntandoAppPluginLinkController implements Runnable {
+
+    private final KubernetesClientForControllers k8sClient;
+    private final DeploymentLinker linker;
+    private SerializedEntandoResource entandoPlugin;
+    private SerializedEntandoResource entandoApp;
 
     @Inject
-    public EntandoAppPluginLinkController(KubernetesClient kubernetesClient) {
-        super(kubernetesClient);
-    }
-
-    public EntandoAppPluginLinkController(SimpleK8SClient<?> k8sClient,
-            SimpleKeycloakClient keycloakClient) {
-        super(k8sClient, keycloakClient);
-    }
-
-    public EntandoAppPluginLinkController(KubernetesClient kubernetesClient, boolean exitAutomatically) {
-        super(kubernetesClient, exitAutomatically);
-    }
-
-    public void onStartup(@Observes StartupEvent event) {
-        processCommand();
+    public EntandoAppPluginLinkController(KubernetesClientForControllers k8sClient, DeploymentLinker linker) {
+        this.k8sClient = k8sClient;
+        this.linker = linker;
     }
 
     @Override
-    protected void synchronizeDeploymentState(EntandoAppPluginLink newEntandoAppPluginLink) {
-        EntandoLinkedPluginIngressing entandoLinkedPluginIngressing = prepareEntandoPluginIngressing(newEntandoAppPluginLink);
-        LinkAppToPluginCommand linkAppToPluginCommand = new LinkAppToPluginCommand(newEntandoAppPluginLink,
-                entandoLinkedPluginIngressing);
-        linkAppToPluginCommand.execute(k8sClient, keycloakClient);
-        k8sClient.entandoResources().updateStatus(newEntandoAppPluginLink, linkAppToPluginCommand.getStatus());
+    public void run() {
+        EntandoAppPluginLink appPluginLink = (EntandoAppPluginLink) k8sClient
+                .resolveCustomResourceToProcess(Collections.singletonList(EntandoAppPluginLink.class));
+        try {
+            appPluginLink = this.k8sClient.deploymentStarted(appPluginLink);
+            final AppToPluginLinkable linkable = new AppToPluginLinkable(appPluginLink);
+            this.entandoApp = k8sClient.loadCustomResource(appPluginLink.getApiVersion(),
+                    "EntandoApp",
+                    appPluginLink.getSpec().getEntandoAppNamespace().orElse(appPluginLink.getMetadata().getNamespace()),
+                    appPluginLink.getSpec().getEntandoAppName());
+            this.entandoApp = k8sClient.waitForCompletion(entandoApp, EntandoOperatorSpiConfig.getPodCompletionTimeoutSeconds() * 2);
+            this.entandoApp.getStatus()
+                    .findFailedServerStatus()
+                    .flatMap(ServerStatus::getEntandoControllerFailure)
+                    .ifPresent(s -> {
+                        throw toException(s, entandoApp);
+                    });
+            this.entandoPlugin = k8sClient.loadCustomResource(appPluginLink.getApiVersion(),
+                    "EntandoPlugin",
+                    appPluginLink.getSpec().getEntandoPluginNamespace().orElse(appPluginLink.getMetadata().getNamespace()),
+                    appPluginLink.getSpec().getEntandoPluginName());
+            this.entandoPlugin = k8sClient.waitForCompletion(entandoPlugin, EntandoOperatorSpiConfig.getPodCompletionTimeoutSeconds() * 2);
+            this.entandoPlugin.getStatus()
+                    .findFailedServerStatus()
+                    .flatMap(ServerStatus::getEntandoControllerFailure)
+                    .ifPresent(s -> {
+                        throw toException(s, entandoPlugin);
+                    });
+            linkable.setTargetPathOnSourceIngress(
+                    entandoPlugin.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).orElseThrow(IllegalStateException::new)
+                            .getWebContexts().get(NameUtils.DEFAULT_SERVER_QUALIFIER));
+            ServerStatus status = linker.link(linkable);
+            appPluginLink = k8sClient.updateStatus(appPluginLink, status);
+            appPluginLink = k8sClient.deploymentEnded(appPluginLink);
+        } catch (Exception e) {
+            appPluginLink = k8sClient.deploymentFailed(appPluginLink, e, NameUtils.MAIN_QUALIFIER);
+        }
+        appPluginLink.getStatus().findFailedServerStatus().flatMap(ServerStatus::getEntandoControllerFailure).ifPresent(s -> {
+            throw new CommandLine.ExecutionException(new CommandLine(this), s.getDetailMessage());
+        });
     }
 
-    private EntandoLinkedPluginIngressing prepareEntandoPluginIngressing(EntandoAppPluginLink newEntandoAppPluginLink) {
-        EntandoAppPluginLinkSpec spec = newEntandoAppPluginLink.getSpec();
-        EntandoApp entandoApp = k8sClient.entandoResources()
-                .load(EntandoApp.class, spec.getEntandoAppNamespace().orElse(newEntandoAppPluginLink.getMetadata().getNamespace()),
-                        spec.getEntandoAppName());
-        EntandoPlugin entandoPlugin = k8sClient.entandoResources()
-                .load(EntandoPlugin.class, spec.getEntandoPluginNamespace().orElse(newEntandoAppPluginLink.getMetadata().getNamespace()),
-                        spec.getEntandoPluginName());
-        k8sClient.pods().waitForPod(entandoPlugin.getMetadata().getNamespace(), KubeUtils.DEPLOYMENT_LABEL_NAME,
-                entandoPlugin.getMetadata().getName() + "-" + NameUtils.DEFAULT_SERVER_QUALIFIER);
-        ExposedService entandoAppDeploymentResult = k8sClient.entandoResources().loadExposedService(entandoApp);
-        ExposedService entandoPluginDeploymentResult = k8sClient.entandoResources().loadExposedService(entandoPlugin);
-        return new EntandoLinkedPluginIngressing(entandoApp, entandoPlugin, entandoAppDeploymentResult, entandoPluginDeploymentResult);
+    private EntandoControllerException toException(EntandoControllerFailure s, SerializedEntandoResource resource) {
+        return new EntandoControllerException(resource, format("The %s %s/%s has not been deployed successfully:%n %s", resource.getKind(),
+                resource.getMetadata().getNamespace(), resource.getMetadata().getName(), s.getDetailMessage()));
     }
 
 }
