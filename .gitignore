@@ -1,8 +1,4 @@
 .idea/*
-!.idea/runConfigurations
-!.idea/codeStyles
-!.idea/copyright
-!.idea/sonarlint.xml
 target/
 *.iml
 .classpath
@@ -10,5 +6,5 @@ target/
 .settings/
 classes/
 /src/test/resources/crd/examples/
-/.factorypath
-/allure-results
+allure-results
+.allure
