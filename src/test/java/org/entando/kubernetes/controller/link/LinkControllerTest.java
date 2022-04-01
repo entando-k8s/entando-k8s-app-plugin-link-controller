@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
-import io.fabric8.kubernetes.api.model.extensions.Ingress;
+import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import io.qameta.allure.Description;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Issue;
@@ -80,8 +80,8 @@ class LinkControllerTest extends LinkControllerTestBase {
         step("When I link the EntandoApp to the EntandoPlugin", this::processLink);
         step("Then the main web context path of the EntandoPlugin is exposed on the EntandoApps' ingress", () -> {
             Ingress ingress = getClient().ingresses().loadIngress(MY_NAMESPACE, NameUtils.standardIngressName(entandoApp));
-            assertThat(theHttpPath("/my-plugin-context").on(ingress).getBackend().getServiceName()).isEqualTo("my-plugin-service");
-            assertThat(theHttpPath("/my-plugin-context").on(ingress).getBackend().getServicePort().getIntVal()).isEqualTo(8081);
+            assertThat(theHttpPath("/my-plugin-context").on(ingress).getBackend().getService().getName()).isEqualTo("my-plugin-service");
+            assertThat(theHttpPath("/my-plugin-context").on(ingress).getBackend().getService().getPort().getNumber()).isEqualTo(8081);
         });
         step("And the SSO Client for boths the EntandoAppServer and EntandoComponentManager have been given the 'entandApp' role on the "
                         + "EntandoPlugin's SSO cleint",
@@ -122,9 +122,9 @@ class LinkControllerTest extends LinkControllerTestBase {
         step("When I link the EntandoApp to the EntandoPlugin", this::processLink);
         step("Then the main web context path of the EntandoPlugin is exposed on the EntandoApps' ingress", () -> {
             Ingress ingress = getClient().ingresses().loadIngress(MY_NAMESPACE, NameUtils.standardIngressName(entandoApp));
-            assertThat(theHttpPath("/my-plugin-context").on(ingress).getBackend().getServiceName())
+            assertThat(theHttpPath("/my-plugin-context").on(ingress).getBackend().getService().getName())
                     .isEqualTo("my-app-ingress-to-my-plugin-service");
-            assertThat(theHttpPath("/my-plugin-context").on(ingress).getBackend().getServicePort().getIntVal()).isEqualTo(8081);
+            assertThat(theHttpPath("/my-plugin-context").on(ingress).getBackend().getService().getPort().getNumber()).isEqualTo(8081);
         });
         step("And the SSO Client for boths the EntandoAppServer and EntandoComponentManager have been given the 'entandApp' role on the "
                         + "EntandoPlugin's SSO cleint",
