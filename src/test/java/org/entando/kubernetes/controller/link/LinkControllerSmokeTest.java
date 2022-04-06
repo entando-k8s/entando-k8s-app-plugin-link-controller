@@ -125,7 +125,7 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
                     .loadCustomResource(entandoApp.getApiVersion(), entandoApp.getKind(), entandoApp.getMetadata().getNamespace(),
                             entandoApp.getMetadata().getName());
             //TODO evaluate if this image version should be resolved dynamically from the Docker image config map
-            startControllerFor(simpleClient, "entando-k8s-app-controller", this.entandoApp, "6.4.0");
+            startControllerFor(simpleClient, "entando-k8s-app-controller", this.entandoApp, "7.0.0");
             attachment("Entando App", objectMapper.writeValueAsString(this.entandoApp));
         });
         step("And I have created an EntandoPlugin custom resource", () -> {
