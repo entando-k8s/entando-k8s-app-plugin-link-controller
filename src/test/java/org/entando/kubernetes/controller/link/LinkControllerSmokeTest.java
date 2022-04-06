@@ -22,6 +22,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.jayway.jsonpath.JsonPath;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watcher.Action;
@@ -31,6 +32,8 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfigProperty;
+import org.entando.kubernetes.controller.spi.common.TrustStoreHelper;
 import org.entando.kubernetes.controller.support.client.impl.DefaultSimpleK8SClient;
 import org.entando.kubernetes.controller.support.client.impl.EntandoOperatorTestConfig;
 import org.entando.kubernetes.controller.support.client.impl.SupportProducer;
@@ -59,8 +62,8 @@ import org.junit.jupiter.api.Test;
         + "know any of its implementation details to use it.")
 class LinkControllerSmokeTest implements FluentIntegrationTesting {
 
-    private static final String MY_NAMESPACE = EntandoOperatorTestConfig.calculateNameSpace("my-namespace");
-    public static final String MY_PLUGIN = EntandoOperatorTestConfig.calculateName("my-plugin");
+    private static final String MY_NAMESPACE = EntandoOperatorTestConfig.calculateNameSpace("entando-k8s-app-plugin-link-controller");
+    public static final String MY_PLUGIN = EntandoOperatorTestConfig.calculateName("my-test-plugin");
     private static final String MY_APP = EntandoOperatorTestConfig.calculateName("my-app");
     private final ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
     private EntandoPlugin entandoPlugin;
@@ -77,6 +80,11 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
     @Test
     @Description("Should successfully connect to newly deployed Plugin using the Ingress of the EntandoApp")
     void testLink() throws InterruptedException {
+        System.setProperty(EntandoOperatorSpiConfigProperty.ENTANDO_CONTROLLER_POD_NAME.getJvmSystemProperty(), "some-pod");
+        System.setProperty("ENTANDO_K8S_OPERATOR_SECURITY_MODE", "strict");
+        System.setProperty("ENTANDO_DOCKER_IMAGE_INFO_NAMESPACE", MY_NAMESPACE);
+        
+        getImageVersion("entando-k8s-app-controller");
         step("Given I have a clean namespace", () -> {
             TestFixturePreparation.prepareTestFixture(client, deleteAll(EntandoPlugin.class).fromNamespace(MY_NAMESPACE)
                     .deleteAll(EntandoApp.class).fromNamespace(MY_NAMESPACE)
@@ -100,7 +108,9 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
                             .endSpec()
                             .build());
         });
-
+        step("And I have prepared the truststore", () -> {
+            generateTrustStore(client);
+        });
         step("And I have configured a ProvidedCapability for SSO in the namespace", () -> {
             final ProvidedCapability providedCapability = new KeycloakTestCapabilityProvider(simpleClient, MY_NAMESPACE)
                     .provideKeycloakCapability();
@@ -124,8 +134,8 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
             simpleClient.entandoResources()
                     .loadCustomResource(entandoApp.getApiVersion(), entandoApp.getKind(), entandoApp.getMetadata().getNamespace(),
                             entandoApp.getMetadata().getName());
-            //TODO evaluate if this image version should be resolved dynamically from the Docker image config map
-            startControllerFor(simpleClient, "entando-k8s-app-controller", this.entandoApp, "6.4.0");
+
+            startControllerFor(simpleClient, "entando-k8s-app-controller", this.entandoApp, null);
             attachment("Entando App", objectMapper.writeValueAsString(this.entandoApp));
         });
         step("And I have created an EntandoPlugin custom resource", () -> {
@@ -145,8 +155,8 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
                                     .endSpec()
                                     .build()
                     );
-            //TODO evaluate if this image version should be resolved dynamically from the Docker image config map
-            startControllerFor(simpleClient, "entando-k8s-plugin-controller", this.entandoPlugin, "6.4.0");
+
+            startControllerFor(simpleClient, "entando-k8s-plugin-controller", this.entandoPlugin, null);
             attachment("Entando Plugin", objectMapper.writeValueAsString(this.entandoPlugin));
         });
         step("When I create an EntandoAppPluginLink to link the two custom resources", () -> {
@@ -180,24 +190,43 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
             assertThat(HttpTestHelper.statusOk(strUrl)).isTrue();
         });
         step("And I can successfully access the Plugin's health URL from the EntandoPlugin's hostname", () -> {
-            final String strUrl =
-                    HttpTestHelper.getDefaultProtocol() + "://" + pluginHostname
-                            + "/avatarPlugin/management/health";
+            final String strUrl = HttpTestHelper.getDefaultProtocol() + "://" + pluginHostname + "/avatarPlugin/management/health";
             await().atMost(1, TimeUnit.MINUTES).ignoreExceptions().until(() -> HttpTestHelper.statusOk(strUrl));
             assertThat(HttpTestHelper.statusOk(strUrl)).isTrue();
         });
     }
 
-    private void startControllerFor(DefaultSimpleK8SClient simpleClient, String s, EntandoCustomResource customResource,
-            String versionToUse) {
-        ControllerExecutor executor = new ControllerExecutor(MY_NAMESPACE, simpleClient, r -> s);
+    private String getImageVersion(String imageName) {
+        var res = simpleClient.entandoResources().loadDockerImageInfoConfigMap().getData().getOrDefault(imageName, null);
+        if (res == null) {
+            throw new IllegalStateException("Unable to determine the " + imageName + " version for the test");
+        }
+        res = JsonPath.parse(res).read("$.version");
+        if (res == null) {
+            throw new IllegalStateException("Unable to determine the " + imageName + " version for the test");
+        }
+        return res;
+    }
+
+    private void startControllerFor(DefaultSimpleK8SClient simpleClient, String imageName,
+            EntandoCustomResource customResource, String versionToUse) {
+        //~
+        ControllerExecutor executor = new ControllerExecutor(MY_NAMESPACE, simpleClient, r -> imageName);
         scheduler.submit(() -> {
             try {
-                executor.runControllerFor(Action.ADDED, customResource, versionToUse);
+                String versionToUseTmp = (versionToUse != null) ? versionToUse : getImageVersion(imageName);
+                executor.runControllerFor(Action.ADDED, customResource, versionToUseTmp);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         });
     }
 
+    private void generateTrustStore(KubernetesClient client) {
+        client.secrets().inNamespace(MY_NAMESPACE).createOrReplace(
+                TrustStoreHelper.newTrustStoreSecret(
+                        client.secrets().inNamespace(MY_NAMESPACE).withName("test-ca-secret").get()
+                )
+        );
+    }
 }
