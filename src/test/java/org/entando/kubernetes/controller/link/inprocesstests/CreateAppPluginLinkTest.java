@@ -29,9 +29,9 @@ import static org.mockito.Mockito.verify;
 
 import io.fabric8.kubernetes.api.model.Endpoints;
 import io.fabric8.kubernetes.api.model.Service;
-import io.fabric8.kubernetes.api.model.extensions.HTTPIngressPath;
-import io.fabric8.kubernetes.api.model.extensions.Ingress;
-import io.fabric8.kubernetes.api.model.extensions.IngressStatus;
+import io.fabric8.kubernetes.api.model.networking.v1.HTTPIngressPath;
+import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
+import io.fabric8.kubernetes.api.model.networking.v1.IngressStatus;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.quarkus.runtime.StartupEvent;
 import java.util.concurrent.TimeUnit;
@@ -109,10 +109,10 @@ class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTraversals, Va
         client.entandoResources().createOrPatchEntandoResource(entandoPlugin);
         IngressStatus ingressStatus = new IngressStatus();
         lenient().when(client.ingresses()
-                .addHttpPath(any(Ingress.class), argThat(matchesHttpPath(MY_PLUGIN_CONTEXT_PATH)), anyMap()))
+                        .addHttpPath(any(Ingress.class), argThat(matchesHttpPath(MY_PLUGIN_CONTEXT_PATH)), anyMap()))
                 .then(answerWithIngressStatus(ingressStatus));
         lenient().when(client.services()
-                .createOrReplaceService(eq(entandoPlugin), argThat(matchesName(MY_PLUGIN_SERVER_SERVICE))))
+                        .createOrReplaceService(eq(entandoPlugin), argThat(matchesName(MY_PLUGIN_SERVER_SERVICE))))
                 .then(answerWithClusterIp(CLUSTER_IP));
         //And I have an app and a plugin
         new IngressingDeployCommand<SampleExposedDeploymentResult>(new FakeDeployable<>(entandoApp)).execute(client, keycloakClient);
@@ -146,8 +146,9 @@ class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTraversals, Va
         assertThat(theHostOn(theIngress), is("myapp.192.168.0.100.nip.io"));
         //And an IngressPath that reflects the webcontext of the EntandoPlugin
         //that is mapped to the previously created HTTP service
-        assertThat(theBackendFor(MY_PLUGIN_CONTEXT_PATH).on(theIngress).getServicePort().getIntVal(), is(PORT_8081));
-        assertThat(theBackendFor(MY_PLUGIN_CONTEXT_PATH).on(theIngress).getServiceName(), is(MY_APP_INGRESS_TO_MY_PLUGIN_SERVER_SERVICE));
+        assertThat(theBackendFor(MY_PLUGIN_CONTEXT_PATH).on(theIngress).getService().getPort().getNumber(), is(PORT_8081));
+        assertThat(theBackendFor(MY_PLUGIN_CONTEXT_PATH).on(theIngress).getService().getName(),
+                is(MY_APP_INGRESS_TO_MY_PLUGIN_SERVER_SERVICE));
         assertThat(theIngress.getMetadata().getAnnotations().get(MY_LINK + "-path"), is(MY_PLUGIN_CONTEXT_PATH));
 
         //And a delegating service was created in the App's namespace
@@ -190,7 +191,7 @@ class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTraversals, Va
         //Given that K8S is up and receiving Ingress requests
         IngressStatus ingressStatus = new IngressStatus();
         lenient().when(client.ingresses()
-                .addHttpPath(any(Ingress.class), argThat(matchesHttpPath(MY_PLUGIN_CONTEXT_PATH)), anyMap()))
+                        .addHttpPath(any(Ingress.class), argThat(matchesHttpPath(MY_PLUGIN_CONTEXT_PATH)), anyMap()))
                 .then(answerWithIngressStatus(ingressStatus));
         final EntandoPlugin newPlugin = new EntandoPluginBuilder(this.entandoPlugin).editSpec().withIngressHostName("shared.com").endSpec()
                 .build();
@@ -198,7 +199,7 @@ class CreateAppPluginLinkTest implements InProcessTestUtil, FluentTraversals, Va
         client.entandoResources().createOrPatchEntandoResource(newApp);
         client.entandoResources().createOrPatchEntandoResource(newPlugin);
         lenient().when(client.services()
-                .createOrReplaceService(eq(newPlugin), argThat(matchesName(MY_PLUGIN_SERVER_SERVICE))))
+                        .createOrReplaceService(eq(newPlugin), argThat(matchesName(MY_PLUGIN_SERVER_SERVICE))))
                 .then(answerWithClusterIp(CLUSTER_IP));
         //And I have an app and a plugin  that share a hostname
         new IngressingDeployCommand<SampleExposedDeploymentResult>(new FakeDeployable<>(newApp)).execute(client, keycloakClient);
