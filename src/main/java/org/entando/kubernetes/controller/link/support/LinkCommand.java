@@ -17,7 +17,7 @@
 package org.entando.kubernetes.controller.link.support;
 
 import io.fabric8.kubernetes.api.model.Service;
-import io.fabric8.kubernetes.api.model.extensions.Ingress;
+import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import java.util.Objects;
 import java.util.Optional;
 import org.entando.kubernetes.controller.spi.client.SerializedEntandoResource;
