@@ -26,7 +26,7 @@ import org.entando.kubernetes.model.common.CustomResourceReference;
 import org.entando.kubernetes.model.common.EntandoCustomResource;
 import org.entando.kubernetes.model.link.EntandoAppPluginLink;
 
-public class AppToPluginLinkable implements Linkable {
+public class AppToPluginLinkable implements Linkable, Cloneable {
 
     public static final String ENTANDO_APP_ROLE = "entandoApp";
     public static final String COMPONENT_MANAGER_QUALIFIER = "cm";
@@ -64,7 +64,6 @@ public class AppToPluginLinkable implements Linkable {
         return Arrays.asList(
                 new QualifiedRoleAssignment(NameUtils.MAIN_QUALIFIER, NameUtils.MAIN_QUALIFIER, ENTANDO_APP_ROLE),
                 new QualifiedRoleAssignment(COMPONENT_MANAGER_QUALIFIER, NameUtils.MAIN_QUALIFIER, ENTANDO_APP_ROLE)
-
         );
     }
 
@@ -85,5 +84,15 @@ public class AppToPluginLinkable implements Linkable {
 
     public void setTargetPathOnSourceIngress(String targetPathOnSourceIngres) {
         this.targetPathOnSourceIngres = targetPathOnSourceIngres;
+    }
+
+    @Override
+    public AppToPluginLinkable clone() {
+        try {
+            AppToPluginLinkable clone = (AppToPluginLinkable) super.clone();
+            return clone;
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError();
+        }
     }
 }

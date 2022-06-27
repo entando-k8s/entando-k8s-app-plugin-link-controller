@@ -18,7 +18,10 @@ package org.entando.kubernetes.controller.link;
 
 import static java.lang.String.format;
 
+import io.quarkus.runtime.Quarkus;
+import io.quarkus.runtime.StartupEvent;
 import java.util.Collections;
+import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import org.entando.kubernetes.controller.link.support.DeploymentLinker;
 import org.entando.kubernetes.controller.spi.client.KubernetesClientForControllers;
@@ -46,13 +49,21 @@ public class EntandoAppPluginLinkController implements Runnable {
         this.linker = linker;
     }
 
+    public static void main(String ...args) {
+        System.out.println("Running main method");
+        Quarkus.run(args);
+    }
+
+    void onStart(@Observes StartupEvent ev) {
+        run();
+    }
+
     @Override
     public void run() {
         EntandoAppPluginLink appPluginLink = (EntandoAppPluginLink) k8sClient
                 .resolveCustomResourceToProcess(Collections.singletonList(EntandoAppPluginLink.class));
         try {
             appPluginLink = this.k8sClient.deploymentStarted(appPluginLink);
-            final AppToPluginLinkable linkable = new AppToPluginLinkable(appPluginLink);
             this.entandoApp = k8sClient.loadCustomResource(appPluginLink.getApiVersion(),
                     "EntandoApp",
                     appPluginLink.getSpec().getEntandoAppNamespace().orElse(appPluginLink.getMetadata().getNamespace()),
@@ -75,10 +86,22 @@ public class EntandoAppPluginLinkController implements Runnable {
                     .ifPresent(s -> {
                         throw toException(s, entandoPlugin);
                     });
+
+            // linkable for canonical ingress
+            final AppToPluginLinkable linkable = new AppToPluginLinkable(appPluginLink);
             linkable.setTargetPathOnSourceIngress(
                     entandoPlugin.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).orElseThrow(IllegalStateException::new)
                             .getWebContexts().get(NameUtils.DEFAULT_SERVER_QUALIFIER));
-            ServerStatus status = linker.link(linkable);
+
+            // linkable for custom ingress
+            AppToPluginLinkable customIngressLinkable = null;
+            if (entandoPlugin.getSpec().containsKey("customIngressPath")) {
+                customIngressLinkable = linkable.clone();
+                customIngressLinkable
+                        .setTargetPathOnSourceIngress((String) entandoPlugin.getSpec().get("customIngressPath"));
+            }
+
+            ServerStatus status = linker.link(linkable, customIngressLinkable);
             appPluginLink = k8sClient.updateStatus(appPluginLink, status);
             appPluginLink = k8sClient.deploymentEnded(appPluginLink);
         } catch (Exception e) {
