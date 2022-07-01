@@ -18,10 +18,7 @@ package org.entando.kubernetes.controller.link;
 
 import static java.lang.String.format;
 
-import io.quarkus.runtime.Quarkus;
-import io.quarkus.runtime.StartupEvent;
 import java.util.Collections;
-import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import org.entando.kubernetes.controller.link.support.DeploymentLinker;
 import org.entando.kubernetes.controller.spi.client.KubernetesClientForControllers;
@@ -47,15 +44,6 @@ public class EntandoAppPluginLinkController implements Runnable {
     public EntandoAppPluginLinkController(KubernetesClientForControllers k8sClient, DeploymentLinker linker) {
         this.k8sClient = k8sClient;
         this.linker = linker;
-    }
-
-    public static void main(String ...args) {
-        System.out.println("Running main method");
-        Quarkus.run(args);
-    }
-
-    void onStart(@Observes StartupEvent ev) {
-        run();
     }
 
     @Override

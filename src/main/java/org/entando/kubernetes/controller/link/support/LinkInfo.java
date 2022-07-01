@@ -35,7 +35,8 @@ public class LinkInfo implements MayRequireDelegateService {
     private final Linkable linkable;
     private final Linkable customIngressLinkable;
 
-    public LinkInfo(Linkable linkable, Linkable customIngressLinkable, SerializedEntandoResource sourceResource, SerializedEntandoResource targetResource) {
+    public LinkInfo(Linkable linkable, Linkable customIngressLinkable, SerializedEntandoResource sourceResource,
+            SerializedEntandoResource targetResource) {
         this.sourceResource = sourceResource;
         this.targetResource = targetResource;
         this.linkable = linkable;
@@ -48,17 +49,20 @@ public class LinkInfo implements MayRequireDelegateService {
     }
 
     public String getSourceServiceName() {
-        return this.sourceResource.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).flatMap(ServerStatus::getServiceName)
+        return this.sourceResource.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER)
+                .flatMap(ServerStatus::getServiceName)
                 .orElseThrow(IllegalStateException::new);
     }
 
     public String getTargetServiceName() {
-        return this.targetResource.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).flatMap(ServerStatus::getServiceName)
+        return this.targetResource.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER)
+                .flatMap(ServerStatus::getServiceName)
                 .orElseThrow(IllegalStateException::new);
     }
 
     public String getSourceIngressName() {
-        return this.sourceResource.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).flatMap(ServerStatus::getIngressName)
+        return this.sourceResource.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER)
+                .flatMap(ServerStatus::getIngressName)
                 .orElseThrow(IllegalStateException::new);
     }
 
@@ -75,7 +79,8 @@ public class LinkInfo implements MayRequireDelegateService {
     }
 
     public ServerStatus getSsoServiceStatus() {
-        return sourceResource.getStatus().getServerStatus(NameUtils.SSO_QUALIFIER).orElseThrow(IllegalStateException::new);
+        return sourceResource.getStatus().getServerStatus(NameUtils.SSO_QUALIFIER)
+                .orElseThrow(IllegalStateException::new);
     }
 
     public String getTargetNamespace() {
@@ -106,28 +111,28 @@ public class LinkInfo implements MayRequireDelegateService {
         return Stream.of(linkable, customIngressLinkable)
                 .filter(Objects::nonNull)
                 .map(l ->
-                    new IngressingPathOnPort() {
-                        @Override
-                        public String getNameQualifier() {
-                            return targetResource.getMetadata().getName() + "-" + NameUtils.randomNumeric(4);
-                        }
+                        new IngressingPathOnPort() {
+                            @Override
+                            public String getNameQualifier() {
+                                return targetResource.getMetadata().getName() + "-" + NameUtils.randomNumeric(4);
+                            }
 
-                        @Override
-                        public int getPortForIngressPath() {
-                            return l.getTargetServicePort();
-                        }
+                            @Override
+                            public int getPortForIngressPath() {
+                                return l.getTargetServicePort();
+                            }
 
-                        @Override
-                        public String getWebContextPath() {
-                            return l.getTargetPathOnSourceIngress();
-                        }
+                            @Override
+                            public String getWebContextPath() {
+                                return l.getTargetPathOnSourceIngress();
+                            }
 
-                        @Override
-                        public Optional<String> getHealthCheckPath() {
-                            //Not required in this context TODO normalize this
-                            return Optional.empty();
-                        }
-                    })
+                            @Override
+                            public Optional<String> getHealthCheckPath() {
+                                //Not required in this context TODO normalize this
+                                return Optional.empty();
+                            }
+                        })
                 .collect(Collectors.toList());
     }
 
@@ -136,6 +141,7 @@ public class LinkInfo implements MayRequireDelegateService {
     }
 
     public Optional<String> getTargetIngressName() {
-        return this.targetResource.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).flatMap(ServerStatus::getIngressName);
+        return this.targetResource.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER)
+                .flatMap(ServerStatus::getIngressName);
     }
 }
