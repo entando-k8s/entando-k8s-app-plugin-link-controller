@@ -20,6 +20,7 @@ import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.entando.kubernetes.controller.spi.client.SerializedEntandoResource;
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfig;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
@@ -41,10 +42,12 @@ public class LinkCommand {
     private final IngressPathCreator ingressCreator;
     private final ServerStatus status;
     private final Linkable linkable;
+    private final Linkable customIngressLinkable;
     private Ingress sourceIngress;
 
-    public LinkCommand(Linkable linkable) {
+    public LinkCommand(Linkable linkable, Linkable customIngressLinkable) {
         this.linkable = linkable;
+        this.customIngressLinkable = customIngressLinkable;
         this.linkResource = linkable.getLinkResource();
         this.ingressCreator = new IngressPathCreator(linkable.getLinkResource());
         this.status = new ServerStatus(NameUtils.MAIN_QUALIFIER).withOriginatingCustomResource(linkResource);
@@ -59,7 +62,7 @@ public class LinkCommand {
     }
 
     public ServerStatus execute(SimpleK8SClient<?> k8sClient, SimpleKeycloakClient keycloakClient) {
-        this.linkInfo = new LinkInfo(linkable,
+        this.linkInfo = new LinkInfo(linkable, customIngressLinkable,
                 resolveResource(k8sClient, linkable.getLinkResource(), linkable.getSource()),
                 resolveResource(k8sClient, linkable.getLinkResource(), linkable.getTarget()));
         status.withOriginatingControllerPod(k8sClient.entandoResources().getNamespace(), EntandoOperatorSpiConfig.getControllerPodName());
