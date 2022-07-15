@@ -113,9 +113,9 @@ public class EntandoAppPluginLinkController implements Runnable {
 
     private AppToPluginLinkable generateCanonicalIngressLinkable(EntandoAppPluginLink appPluginLink) {
         final AppToPluginLinkable linkable = new AppToPluginLinkable(appPluginLink);
-        var serverStatus = entandoPlugin.getStatus().getServerStatus(NameUtils.MAIN_QUALIFIER).orElseThrow(IllegalStateException::new);
-        var targetPathOnSourceIngress = serverStatus.getWebContexts().get(NameUtils.DEFAULT_SERVER_QUALIFIER);
-        linkable.setTargetPathOnSourceIngress(targetPathOnSourceIngress);
+        if (entandoPlugin.getSpec().containsKey(PROP_CANONICAL_INGRESS_PATH)) {
+            linkable.setTargetPathOnSourceIngress((String) entandoPlugin.getSpec().get(PROP_CANONICAL_INGRESS_PATH));
+        }
         return linkable;
     }
 
