@@ -132,7 +132,7 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
                     );
             //force initialization of CRD/Name map
             simpleClient.entandoResources()
-                    .loadCustomResource(entandoApp.getApiVersion(), entandoApp.getKind(), entandoApp.getMetadata().getNamespace(),
+                    .loadCustomResource(entandoApp.getApiVersion(), entandoApp.getKind(), MY_NAMESPACE,
                             entandoApp.getMetadata().getName());
 
             startControllerFor(simpleClient, "entando-k8s-app-controller", this.entandoApp, null);
