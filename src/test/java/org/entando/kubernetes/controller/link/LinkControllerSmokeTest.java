@@ -189,11 +189,6 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
             await().atMost(1, TimeUnit.MINUTES).ignoreExceptions().until(() -> HttpTestHelper.statusOk(strUrl));
             assertThat(HttpTestHelper.statusOk(strUrl)).isTrue();
         });
-        step("And I can successfully access the Plugin's health URL from the EntandoPlugin's hostname", () -> {
-            final String strUrl = HttpTestHelper.getDefaultProtocol() + "://" + pluginHostname + "/avatarPlugin/management/health";
-            await().atMost(1, TimeUnit.MINUTES).ignoreExceptions().until(() -> HttpTestHelper.statusOk(strUrl));
-            assertThat(HttpTestHelper.statusOk(strUrl)).isTrue();
-        });
     }
 
     private String getImageVersion(String imageName) {
