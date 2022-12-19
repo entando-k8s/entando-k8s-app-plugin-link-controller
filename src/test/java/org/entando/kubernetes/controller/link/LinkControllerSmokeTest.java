@@ -191,7 +191,7 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
             final String strUrl =
                     HttpTestHelper.getDefaultProtocol() + "://" + appHostname
                             + "/avatarPlugin/management/health";
-            log.info("Check plugin health url with waitMinutes:'{}' and strUrl:'{}'", waitMinutes, strUrl);
+            log.debug("Check plugin health url with waitMinutes:'{}' and strUrl:'{}'", waitMinutes, strUrl);
             await().atMost(waitMinutes, TimeUnit.MINUTES).ignoreExceptions()
                     .until(() -> HttpTestHelper.statusOk(strUrl));
             assertThat(HttpTestHelper.statusOk(strUrl)).isTrue();
