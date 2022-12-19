@@ -56,13 +56,17 @@ import org.entando.kubernetes.test.e2etest.ControllerExecutor;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Tags;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Tags({@Tag("smoke"), @Tag("allure"), @Tag("post-deployment"), @Tag("inter-process")})
 @Feature("As an Entando Operator users, I want to use a Docker container to process an EntandoAppPluginLink so that I don't need to "
         + "know any of its implementation details to use it.")
 class LinkControllerSmokeTest implements FluentIntegrationTesting {
 
-    private static final String MY_NAMESPACE = EntandoOperatorTestConfig.calculateNameSpace("entando-k8s-app-plugin-link-controller");
+    private static final Logger log = LoggerFactory.getLogger(LinkControllerSmokeTest.class);
+    private static final String MY_NAMESPACE = EntandoOperatorTestConfig.calculateNameSpace(
+            "entando-k8s-app-plugin-link-controller");
     public static final String MY_PLUGIN = EntandoOperatorTestConfig.calculateName("my-test-plugin");
     private static final String MY_APP = EntandoOperatorTestConfig.calculateName("my-app");
     private final ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
@@ -183,15 +187,13 @@ class LinkControllerSmokeTest implements FluentIntegrationTesting {
         scheduler.awaitTermination(5, TimeUnit.MINUTES);
         System.out.println("completed");
         step("Then I can successfully access the Plugin's health URL from the EntandoApp's hostname", () -> {
+            int waitMinutes = 2;
             final String strUrl =
                     HttpTestHelper.getDefaultProtocol() + "://" + appHostname
                             + "/avatarPlugin/management/health";
-            await().atMost(1, TimeUnit.MINUTES).ignoreExceptions().until(() -> HttpTestHelper.statusOk(strUrl));
-            assertThat(HttpTestHelper.statusOk(strUrl)).isTrue();
-        });
-        step("And I can successfully access the Plugin's health URL from the EntandoPlugin's hostname", () -> {
-            final String strUrl = HttpTestHelper.getDefaultProtocol() + "://" + pluginHostname + "/avatarPlugin/management/health";
-            await().atMost(1, TimeUnit.MINUTES).ignoreExceptions().until(() -> HttpTestHelper.statusOk(strUrl));
+            log.debug("Check plugin health url with waitMinutes:'{}' and strUrl:'{}'", waitMinutes, strUrl);
+            await().atMost(waitMinutes, TimeUnit.MINUTES).ignoreExceptions()
+                    .until(() -> HttpTestHelper.statusOk(strUrl));
             assertThat(HttpTestHelper.statusOk(strUrl)).isTrue();
         });
     }
