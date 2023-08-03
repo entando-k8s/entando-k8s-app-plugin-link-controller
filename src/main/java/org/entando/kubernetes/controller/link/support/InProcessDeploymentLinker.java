@@ -31,7 +31,7 @@ public class InProcessDeploymentLinker implements DeploymentLinker {
     }
 
     @Override
-    public ServerStatus link(Linkable linkable, Linkable customIngressLinkable) {
-        return new LinkCommand(linkable, customIngressLinkable).execute(client, keycloakClient);
+    public ServerStatus link(Linkable linkable, Linkable customIngressLinkable, String tenantCode) {
+        return new LinkCommand(linkable, customIngressLinkable).execute(client, keycloakClient, tenantCode);
     }
 }

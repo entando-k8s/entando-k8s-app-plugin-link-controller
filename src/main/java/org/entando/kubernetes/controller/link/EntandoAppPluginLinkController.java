@@ -80,7 +80,7 @@ public class EntandoAppPluginLinkController implements Runnable {
     private ServerStatus executeTheLink(EntandoAppPluginLink appPluginLink) {
         var canonicalIngressLinkable = generateCanonicalIngressLinkable(appPluginLink);
         var customIngressLinkable = generateCustomIngressLinkable(canonicalIngressLinkable);
-        return linker.link(canonicalIngressLinkable, customIngressLinkable);
+        return linker.link(canonicalIngressLinkable, customIngressLinkable, appPluginLink.getSpec().getTenantCode());
     }
 
     private void waitForTheEntandoPlugin(EntandoAppPluginLink appPluginLink) throws TimeoutException {

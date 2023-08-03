@@ -19,5 +19,5 @@ package org.entando.kubernetes.controller.link.support;
 import org.entando.kubernetes.model.common.ServerStatus;
 
 public interface DeploymentLinker {
-    ServerStatus link(Linkable linkable, Linkable customIngressLinkable);
+    ServerStatus link(Linkable linkable, Linkable customIngressLinkable, String tenantCode);
 }
