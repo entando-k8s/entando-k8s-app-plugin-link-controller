@@ -58,7 +58,7 @@ public class TenantConfiguration {
         return getPropertyOrThrow(KC_ADMIN_PASSWORD_PROPERTY);
     }
 
-    public String getEntandoAppIngressNameProperty() {
+    public String getEntandoAppIngressName() {
         return getPropertyOrThrow(ENTANDO_APP_INGRESS_NAME_PROPERTY);
     }
 

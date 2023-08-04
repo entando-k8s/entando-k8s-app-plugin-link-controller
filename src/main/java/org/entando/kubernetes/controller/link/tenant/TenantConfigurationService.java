@@ -114,6 +114,6 @@ public class TenantConfigurationService {
     }
 
     public String getEntandoAppIngressNameProperty(String tenantCode) {
-        return fetchTenantConfiguration(tenantCode).getEntandoAppIngressNameProperty();
+        return fetchTenantConfiguration(tenantCode).getEntandoAppIngressName();
     }
 }
