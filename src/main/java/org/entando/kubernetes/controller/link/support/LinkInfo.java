@@ -34,13 +34,19 @@ public class LinkInfo implements MayRequireDelegateService {
     private final SerializedEntandoResource targetResource;
     private final Linkable linkable;
     private final Linkable customIngressLinkable;
+    private final String tenantCode;
 
     public LinkInfo(Linkable linkable, Linkable customIngressLinkable, SerializedEntandoResource sourceResource,
-            SerializedEntandoResource targetResource) {
+            SerializedEntandoResource targetResource, String tenantCode) {
         this.sourceResource = sourceResource;
         this.targetResource = targetResource;
         this.linkable = linkable;
         this.customIngressLinkable = customIngressLinkable;
+        this.tenantCode = tenantCode;
+    }
+
+    public String getTenantCode() {
+        return tenantCode;
     }
 
     public String getSsoRealm() {

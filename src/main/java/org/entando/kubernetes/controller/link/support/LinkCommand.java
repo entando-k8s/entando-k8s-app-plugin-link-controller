@@ -16,11 +16,17 @@
 
 package org.entando.kubernetes.controller.link.support;
 
+import static org.apache.commons.lang3.StringUtils.equalsIgnoreCase;
+import static org.apache.commons.lang3.StringUtils.isBlank;
+
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.entando.kubernetes.controller.link.tenant.SsoConnectionInfoTenantAware;
+import org.entando.kubernetes.controller.link.tenant.TenantConfigurationService;
 import org.entando.kubernetes.controller.spi.client.SerializedEntandoResource;
 import org.entando.kubernetes.controller.spi.common.EntandoOperatorSpiConfig;
 import org.entando.kubernetes.controller.spi.common.NameUtils;
@@ -33,9 +39,11 @@ import org.entando.kubernetes.controller.support.creators.IngressPathCreator;
 import org.entando.kubernetes.controller.support.creators.ServiceCreator;
 import org.entando.kubernetes.model.common.CustomResourceReference;
 import org.entando.kubernetes.model.common.EntandoCustomResource;
+import org.entando.kubernetes.model.common.EntandoMultiTenancy;
 import org.entando.kubernetes.model.common.ServerStatus;
 
 public class LinkCommand {
+    private static final Logger LOGGER = Logger.getLogger(LinkCommand.class.getName());
 
     private final EntandoCustomResource linkResource;
     private LinkInfo linkInfo;
@@ -61,10 +69,11 @@ public class LinkCommand {
                         source.getName());
     }
 
-    public ServerStatus execute(SimpleK8SClient<?> k8sClient, SimpleKeycloakClient keycloakClient) {
+    public ServerStatus execute(SimpleK8SClient<?> k8sClient, SimpleKeycloakClient keycloakClient, String tenantCode) {
         this.linkInfo = new LinkInfo(linkable, customIngressLinkable,
                 resolveResource(k8sClient, linkable.getLinkResource(), linkable.getSource()),
-                resolveResource(k8sClient, linkable.getLinkResource(), linkable.getTarget()));
+                resolveResource(k8sClient, linkable.getLinkResource(), linkable.getTarget()),
+                tenantCode);
         status.withOriginatingControllerPod(k8sClient.entandoResources().getNamespace(), EntandoOperatorSpiConfig.getControllerPodName());
         if (this.linkable.getAccessStrategy() == AccessStrategy.SSO) {
             if (usingSameHostname(k8sClient)) {
@@ -94,13 +103,23 @@ public class LinkCommand {
     }
 
     private void grantSourceAccessToTarget(SimpleKeycloakClient keycloakClient, SimpleK8SClient<?> client) {
-        SsoConnectionInfo keycloakConnectionConfig = new ProvidedSsoCapability(client.entandoResources()
-                .loadCapabilityProvisioningResult(linkInfo.getSsoServiceStatus()));
+        SsoConnectionInfo keycloakConnectionConfig;
+        String realm;
+        if (isPrimary(linkInfo.getTenantCode())) {
+            keycloakConnectionConfig = new ProvidedSsoCapability(client.entandoResources()
+                    .loadCapabilityProvisioningResult(linkInfo.getSsoServiceStatus()));
+            realm = linkInfo.getSsoRealm();
+        } else {
+            keycloakConnectionConfig = new SsoConnectionInfoTenantAware(linkInfo.getTenantCode(),
+                    linkable.getLinkResource(), client);
+            realm = keycloakConnectionConfig.getDefaultRealm().orElseThrow(() -> new IllegalStateException(
+                    String.format("Missing realm for tenant: '%s'", linkInfo.getTenantCode())));
+        }
         keycloakClient.login(keycloakConnectionConfig.getBaseUrlToUse(), keycloakConnectionConfig.getUsername(),
                 keycloakConnectionConfig.getPassword());
         linkInfo.getPermissions().forEach(linkPermission ->
                 keycloakClient.assignRoleToClientServiceAccount(
-                        linkInfo.getSsoRealm(),
+                        realm,
                         linkPermission.getSourceClientId(),
                         linkPermission));
     }
@@ -111,9 +130,21 @@ public class LinkCommand {
     }
 
     private Ingress getSourceIngress(SimpleK8SClient<?> k8sClient) {
-        this.sourceIngress = Objects.requireNonNullElseGet(this.sourceIngress, () -> k8sClient.ingresses()
-                .loadIngress(linkInfo.getSourceNamespace(), linkInfo.getSourceIngressName()));
+        if (isPrimary(linkInfo.getTenantCode())) {
+            this.sourceIngress = Objects.requireNonNullElseGet(this.sourceIngress, () -> k8sClient.ingresses()
+                    .loadIngress(linkInfo.getSourceNamespace(), linkInfo.getSourceIngressName()));
+        } else {
+            TenantConfigurationService tcs = new TenantConfigurationService(k8sClient, linkable.getLinkResource());
+            this.sourceIngress = Objects.requireNonNullElseGet(this.sourceIngress, () -> k8sClient.ingresses()
+                    .loadIngress(linkInfo.getSourceNamespace(), tcs.getEntandoAppIngressNameProperty(linkInfo.getTenantCode())));
+        }
         return this.sourceIngress;
+    }
+
+    private boolean isPrimary(String tenantCode) {
+        boolean isPrimary = isBlank(tenantCode) || equalsIgnoreCase(EntandoMultiTenancy.PRIMARY_TENANT, tenantCode);
+        LOGGER.log(Level.SEVERE, () -> String.format("tenantCode '%s' is primary ? '%s'", tenantCode, isPrimary));
+        return isPrimary;
     }
 
     private Service prepareReachableTargetService(SimpleK8SClient<?> k8sClient) {
