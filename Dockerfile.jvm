@@ -1,9 +1,9 @@
-FROM entando/entando-k8s-operator-common:7.3.0-rc2
+FROM entando/entando-k8s-operator-common:7.4.0-ENG-5316-PR-150
 ARG VERSION
 LABEL name="Entando K8S App Plugin Link Controller" \
       vendor="Entando" \
       version="v${VERSION}" \
-      release="7.3" \
+      release="7.4" \
       summary="This container processes the EntandoAppPluginLink custom resource and linkes the specified EntandoPlugin to the EntandoApp." \
       description="This is a run-to-completion container. It processes new EntandoAppPluginLink Custom \
                    Resources and creates an ingress path for  the specified EntandoPlugin service on the \
