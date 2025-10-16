@@ -18,9 +18,9 @@ package org.entando.kubernetes.controller.link;
 
 import static java.lang.String.format;
 
+import jakarta.inject.Inject;
 import java.util.Collections;
 import java.util.concurrent.TimeoutException;
-import javax.inject.Inject;
 import org.entando.kubernetes.controller.link.support.DeploymentLinker;
 import org.entando.kubernetes.controller.spi.client.KubernetesClientForControllers;
 import org.entando.kubernetes.controller.spi.client.SerializedEntandoResource;
