@@ -68,7 +68,6 @@
         <preDeploymentTestGroups>in-process</preDeploymentTestGroups>
         <postDeploymentTestGroups>smoke</postDeploymentTestGroups>
         <skipLicenseDownload>true</skipLicenseDownload>
-        <sonar.skip>true</sonar.skip>
     </properties>
     <issueManagement>
         <system>Github</system>
