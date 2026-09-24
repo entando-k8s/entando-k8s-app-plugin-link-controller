@@ -44,7 +44,7 @@
     </organization>
     <repositories>
         <repository>
-            <id>jx-releases</id>
+            <id>nexus-entando</id>
             <url>https://dependencies.entando.org/repository/maven-releases/</url>
             <releases>
                 <enabled>true</enabled>
